@@ -1,0 +1,18 @@
+node_modules
+.next
+out
+.env
+.env.*
+!.env.example
+*.mp4
+*.mov
+.DS_Store
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+
+# secrets & local files — never commit
+db pass*.txt
+*pat*.txt
+*.zip
+Claude outputs/

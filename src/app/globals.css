@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 244 246 251; --panel: 255 255 255; --panel2: 240 243 249; --line: 221 226 236;
+  --ink: 15 23 42; --muted: 100 116 139;
+}
+.dark {
+  --bg: 6 15 34; --panel: 11 25 52; --panel2: 17 35 70; --line: 32 52 92;
+  --ink: 236 241 250; --muted: 142 160 192;
+}
+html, body { background: rgb(var(--bg)); color: rgb(var(--ink)); }
+[dir='rtl'] body { font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', system-ui, sans-serif; }
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-panel; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:opacity-50 whitespace-nowrap; }
+  .btn-gold { @apply btn bg-gradient-to-r from-gold-dark via-gold to-gold-light text-navy-dark hover:brightness-110 shadow; }
+  .btn-ghost { @apply btn border border-line bg-panel2 text-ink hover:border-gold/60; }
+  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-500; }
+  .btn-sm { @apply px-3 py-1.5 text-xs rounded-lg; }
+  .input { @apply w-full rounded-xl border border-line bg-panel2 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-gold focus:ring-2 focus:ring-gold/20; }
+  .label { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-muted; }
+  .tbl { @apply w-full text-sm; }
+  .tbl th { @apply whitespace-nowrap border-b border-line px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted; }
+  .tbl td { @apply border-b border-line/60 px-4 py-3 align-middle; }
+  .tbl tbody tr:hover { @apply bg-panel2/60; }
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap; }
+  .link { @apply font-semibold text-gold hover:underline; }
+  .section-title { @apply text-base font-bold; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  html, body { background: #fff !important; color: #000 !important; }
+  .print-area { box-shadow: none !important; border: none !important; }
+}
