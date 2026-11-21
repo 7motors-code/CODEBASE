@@ -38,9 +38,10 @@ export async function setDamageStatus(fd: FormData) {
 export async function updateDamage(fd: FormData) {
   await requirePerm('damage', 'edit');
   const id = String(fd.get('id'));
-  const more = await saveUploads(fd.getAll('media'));
   const [d] = await db.select().from(schema.damages).where(eq(schema.damages.id, id));
-  await db.update(schema.damages).set({ damageType: String(fd.get('damageType') ?? d.damageType), description: str(fd.get('description')), estimatedCost: int(fd.get('estimatedCost')), mediaIds: [...d.mediaIds, ...more] }).where(eq(schema.damages.id, id));
+  if (!d) redirect('/admin/damage?err=Incident+not+found');
+  const more = await saveUploads(fd.getAll('media'));
+  await db.update(schema.damages).set({ damageType: String(fd.get('damageType') ?? d.damageType), description: str(fd.get('description')), estimatedCost: int(fd.get('estimatedCost')), mediaIds: [...(d.mediaIds ?? []), ...more] }).where(eq(schema.damages.id, id));
   await log('update', 'damage', id);
   revalidatePath('/admin', 'layout');
   redirect('/admin/damage');

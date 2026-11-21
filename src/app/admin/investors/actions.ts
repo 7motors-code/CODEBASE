@@ -20,8 +20,12 @@ export async function saveInvestor(fd: FormData) {
   else iid = (await db.insert(schema.investors).values(data).returning())[0].id;
   const cars = fd.getAll('vehicleIds').map((v) => int(v)).filter(Boolean);
   // unassign cars removed from this investor, assign the selected ones
-  await db.update(schema.vehicles).set({ investorId: null }).where(and(eq(schema.vehicles.investorId, iid), cars.length ? notInArray(schema.vehicles.id, cars) : undefined));
-  if (cars.length) await db.update(schema.vehicles).set({ investorId: iid }).where(inArray(schema.vehicles.id, cars));
+  if (cars.length) {
+    await db.update(schema.vehicles).set({ investorId: null }).where(and(eq(schema.vehicles.investorId, iid), notInArray(schema.vehicles.id, cars)));
+    await db.update(schema.vehicles).set({ investorId: iid }).where(inArray(schema.vehicles.id, cars));
+  } else {
+    await db.update(schema.vehicles).set({ investorId: null }).where(eq(schema.vehicles.investorId, iid));
+  }
   await log(id ? 'update' : 'create', 'investor', iid, name);
   revalidatePath('/admin', 'layout');
   redirect('/admin/investors');

@@ -26,7 +26,10 @@ export async function receiveVehicle(fd: FormData) {
   const collect = int(fd.get('collect'));
   if (collect > 0) {
     const bal = (await bookingBalances([id])).get(id)!;
-    await db.insert(schema.payments).values({ id: newPaymentId(), bookingId: id, customerId: b.customerId, amount: Math.min(collect, bal.pending), type: fine > 0 && collect <= fine ? 'FINE' : 'RENT', method: String(fd.get('method') ?? 'Cash'), paidAt: new Date(), receivedById: user.id });
+    const payAmount = Math.min(collect, bal?.pending ?? 0);
+    if (payAmount > 0) {
+      await db.insert(schema.payments).values({ id: newPaymentId(), bookingId: id, customerId: b.customerId, amount: payAmount, type: fine > 0 && payAmount <= fine ? 'FINE' : 'RENT', method: String(fd.get('method') ?? 'Cash'), paidAt: new Date(), receivedById: user.id });
+    }
   }
   await log('receive', 'booking', id, `fine ${fine}`);
   revalidatePath('/admin', 'layout');

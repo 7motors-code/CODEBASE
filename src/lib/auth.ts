@@ -27,12 +27,16 @@ export async function requireUser() {
 export type PermMap = Record<ModuleKey, Record<Action, boolean>>;
 
 export const getPerms = cache(async (role: string): Promise<PermMap> => {
+  if (role === 'ADMIN') {
+    const out = {} as PermMap;
+    for (const m of MODULE_KEYS) out[m] = defaultPerm('ADMIN', m);
+    return out;
+  }
   const rows = await db.select().from(schema.rolePermissions).where(eq(schema.rolePermissions.role, role));
   const out = {} as PermMap;
   for (const m of MODULE_KEYS) {
     const r = rows.find((x) => x.module === m);
-    out[m] = role === 'ADMIN' ? defaultPerm('ADMIN', m)
-      : r ? { view: r.canView, create: r.canCreate, edit: r.canEdit, delete: r.canDelete } : defaultPerm(role, m);
+    out[m] = r ? { view: r.canView, create: r.canCreate, edit: r.canEdit, delete: r.canDelete } : defaultPerm(role, m);
   }
   return out;
 });

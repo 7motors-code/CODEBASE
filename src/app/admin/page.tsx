@@ -16,28 +16,43 @@ export default async function Dashboard({ searchParams }: { searchParams: { day?
   const t = T();
   const month = pkMonth();
   const cur = monthRange(month), prev = monthRange(addMonths(month, -1));
-  const revenueIn = async (s: Date, e: Date) => (await db.select({ v: sql<number>`coalesce(sum(${schema.bookings.totalAmount}),0)::int` }).from(schema.bookings)
-    .where(and(ne(schema.bookings.status, 'CANCELLED'), gte(schema.bookings.startAt, s), lt(schema.bookings.startAt, e))))[0].v;
-  const [revNow, revPrev] = await Promise.all([revenueIn(cur.start, cur.end), revenueIn(prev.start, prev.end)]);
-  const countIn = async (status: string[], s?: Date, e?: Date) => (await db.select({ v: sql<number>`count(*)::int` }).from(schema.bookings)
-    .where(and(inArray(schema.bookings.status, status), s ? gte(schema.bookings.createdAt, s) : sql`true`, e ? lt(schema.bookings.createdAt, e) : sql`true`)))[0].v;
-  const active = await countIn(['CONFIRMED', 'IN_PROGRESS']);
-  const actPrev = await countIn(['CONFIRMED', 'IN_PROGRESS', 'COMPLETED'], prev.start, prev.end);
-  const actNow = await countIn(['CONFIRMED', 'IN_PROGRESS', 'COMPLETED'], cur.start, cur.end);
-  const custTotal = (await db.select({ v: sql<number>`count(*)::int` }).from(schema.customers))[0].v;
-  const custNow = (await db.select({ v: sql<number>`count(*)::int` }).from(schema.customers).where(gte(schema.customers.createdAt, cur.start)))[0].v;
-  const custPrev = (await db.select({ v: sql<number>`count(*)::int` }).from(schema.customers).where(and(gte(schema.customers.createdAt, prev.start), lt(schema.customers.createdAt, prev.end))))[0].v;
-
-  // Revenue for last 12 months
   const months = Array.from({ length: 12 }, (_, i) => addMonths(month, i - 11));
-  const series = [];
-  for (const m of months) {
-    const r = monthRange(m);
-    const [x] = await db.select({ rev: sql<number>`coalesce(sum(${schema.bookings.totalAmount}),0)::int`, n: sql<number>`count(*)::int` }).from(schema.bookings)
-      .where(and(ne(schema.bookings.status, 'CANCELLED'), gte(schema.bookings.startAt, r.start), lt(schema.bookings.startAt, r.end)));
-    series.push({ label: MONTHS[Number(m.slice(5)) - 1], revenue: x.rev, bookings: x.n });
-  }
+  const yearStart = monthRange(months[0]).start;
+  const yearEnd = cur.end;
+
+  const [monthlyStats, [activeRow], [custStats]] = await Promise.all([
+    db.select({
+      m: sql<string>`to_char(${schema.bookings.startAt} AT TIME ZONE 'Asia/Karachi', 'YYYY-MM')`,
+      rev: sql<number>`coalesce(sum(${schema.bookings.totalAmount}),0)::int`,
+      n: sql<number>`count(*)::int`,
+    }).from(schema.bookings)
+      .where(and(ne(schema.bookings.status, 'CANCELLED'), gte(schema.bookings.startAt, yearStart), lt(schema.bookings.startAt, yearEnd)))
+      .groupBy(sql`1`),
+    db.select({
+      active: sql<number>`count(*) filter (where ${schema.bookings.status} in ('CONFIRMED', 'IN_PROGRESS'))::int`,
+      actNow: sql<number>`count(*) filter (where ${schema.bookings.status} in ('CONFIRMED', 'IN_PROGRESS', 'COMPLETED') and ${schema.bookings.createdAt} >= ${cur.start} and ${schema.bookings.createdAt} < ${cur.end})::int`,
+      actPrev: sql<number>`count(*) filter (where ${schema.bookings.status} in ('CONFIRMED', 'IN_PROGRESS', 'COMPLETED') and ${schema.bookings.createdAt} >= ${prev.start} and ${schema.bookings.createdAt} < ${prev.end})::int`,
+    }).from(schema.bookings),
+    db.select({
+      total: sql<number>`count(*)::int`,
+      now: sql<number>`count(*) filter (where ${schema.customers.createdAt} >= ${cur.start})::int`,
+      prev: sql<number>`count(*) filter (where ${schema.customers.createdAt} >= ${prev.start} and ${schema.customers.createdAt} < ${prev.end})::int`,
+    }).from(schema.customers),
+  ]);
+
+  const series = months.map((m) => {
+    const x = monthlyStats.find((s) => s.m === m);
+    return { label: MONTHS[Number(m.slice(5)) - 1], revenue: x?.rev ?? 0, bookings: x?.n ?? 0 };
+  });
   const yearTotal = series.reduce((s, x) => s + x.revenue, 0);
+  const revNow = series[11].revenue;
+  const revPrev = series[10].revenue;
+  const active = activeRow?.active ?? 0;
+  const actNow = activeRow?.actNow ?? 0;
+  const actPrev = activeRow?.actPrev ?? 0;
+  const custTotal = custStats?.total ?? 0;
+  const custNow = custStats?.now ?? 0;
+  const custPrev = custStats?.prev ?? 0;
 
   const nowFleet = await fleetStatus();
   const counts = (k: string) => nowFleet.filter((v) => v.vstatus === k).length;
@@ -112,7 +127,6 @@ export default async function Dashboard({ searchParams }: { searchParams: { day?
           </div>
           <div>
             <form className="mb-3 flex gap-2" method="get">
-              <input type="hidden" name="day" value={day} />
               <input name="q" defaultValue={searchParams.q} placeholder="Search vehicle or reg no…" className="input" />
               <input type="date" name="day" defaultValue={day} className="input w-44" />
               <button className="btn-ghost">Go</button>
