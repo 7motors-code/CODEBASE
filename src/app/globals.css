@@ -29,6 +29,50 @@ html, body { background: rgb(var(--bg)); color: rgb(var(--ink)); }
   .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap; }
   .link { @apply font-semibold text-gold hover:underline; }
   .section-title { @apply text-base font-bold; }
+
+  /* Liquid Glass System */
+  .glass-surface {
+    background: rgba(11, 25, 52, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  }
+  .liquid-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+  }
+  .liquid-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(212, 165, 44, 0.45);
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 25px -5px rgba(212, 165, 44, 0.2), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+  }
+  .liquid-glass-input {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .liquid-glass-input:focus {
+    border-color: rgba(212, 165, 44, 0.7);
+    box-shadow: 0 0 0 3px rgba(212, 165, 44, 0.2);
+  }
+}
+
+/* Skeleton Shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.12) 37%, rgba(255, 255, 255, 0.03) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
 }
 
 @media print {

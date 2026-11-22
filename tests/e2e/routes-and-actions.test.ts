@@ -52,7 +52,7 @@ test('E2E: Public routes render 200 OK', async (t) => {
     t.skip(`Next.js server is not running on ${BASE_URL}.`);
     return;
   }
-  const publicRoutes = ['/login', '/portal', '/portal/my'];
+  const publicRoutes = ['/', '/login', '/portal', '/portal/my'];
   for (const route of publicRoutes) {
     const res = await fetch(`${BASE_URL}${route}`);
     assert.equal(res.status, 200, `Expected 200 for ${route}`);
