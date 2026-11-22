@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "ecc-memory": {
+      "command": "node",
+      "args": [
+        "/home/mhk/Desktop/7 MOTORS/.agents/scripts/memory-mcp.mjs"
+      ],
+      "env": {
+        "ECC_MEMORY_HARNESS": "antigravity"
+      }
+    }
+  }
+}

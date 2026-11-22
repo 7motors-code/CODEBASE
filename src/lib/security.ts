@@ -10,7 +10,7 @@ import { db, schema } from '@/db';
  */
 export function safeBack(v: FormDataEntryValue | null | undefined, fallback: string) {
   const s = typeof v === 'string' ? v.trim() : '';
-  if (!s.startsWith('/') || s.startsWith('//') || s.startsWith('/\\') || /[\r\n]/.test(s)) return fallback;
+  if (!s.startsWith('/') || s.startsWith('//') || s.startsWith('/\\') || /[\s\x00-\x1f\x7f]/.test(s)) return fallback;
   return s;
 }
 
