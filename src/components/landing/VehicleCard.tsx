@@ -17,7 +17,7 @@ export function VehicleCard({ car, onSelect }: VehicleCardProps) {
   const photo = car.cardPhotoId || car.photoId;
 
   return (
-    <article className="clean-card group flex flex-col overflow-hidden">
+    <article className="clean-card group flex w-full flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-0.5">
       <div className="relative aspect-[16/10] overflow-hidden bg-[#101216]">
         {photo ? (
           <Image
@@ -25,7 +25,7 @@ export function VehicleCard({ car, onSelect }: VehicleCardProps) {
             alt={`${car.model}${car.color ? `, ${car.color}` : ''}`}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
           />
         ) : (
           <div className="flex h-full items-center justify-center bg-panel2 text-muted">

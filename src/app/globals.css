@@ -107,6 +107,47 @@ body { font-feature-settings: 'ss01', 'cv01'; -webkit-font-smoothing: antialiase
 .reveal-d4 { animation-delay: 0.2s; }
 .reveal-d5 { animation-delay: 0.25s; }
 
+/* Hero: slow drift on the active photo, progress fill on its tab */
+@keyframes drift { from { transform: scale(1.12) translate3d(1.5%, 0, 0); } to { transform: scale(1) translate3d(0, 0, 0); } }
+.hero-drift { animation: drift 9s cubic-bezier(0.25, 0.1, 0.25, 1) both; will-change: transform; }
+@keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.hero-progress { width: 100%; transform-origin: left; animation: progress linear both; }
+[dir='rtl'] .hero-progress { transform-origin: right; }
+/* Blur only where the copy sits: full on the start side, gone by the middle */
+.hero-frost {
+  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 45%, transparent 85%);
+  mask-image: linear-gradient(to top, #000 0%, #000 45%, transparent 85%);
+}
+@media (min-width: 1024px) {
+  .hero-frost {
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 32%, transparent 58%);
+    mask-image: linear-gradient(to right, #000 0%, #000 32%, transparent 58%);
+  }
+  [dir='rtl'] .hero-frost {
+    -webkit-mask-image: linear-gradient(to left, #000 0%, #000 32%, transparent 58%);
+    mask-image: linear-gradient(to left, #000 0%, #000 32%, transparent 58%);
+  }
+}
+/* Headline lines rise out of a clipped box */
+@keyframes line-up { from { transform: translateY(105%); } to { transform: none; } }
+.line-mask { display: block; overflow: hidden; padding-bottom: 0.06em; }
+.line-mask > span { display: block; animation: line-up 0.9s var(--ease) both; }
+/* Gold underline that draws in under the key phrase */
+@keyframes underline { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.ink-underline { position: relative; white-space: nowrap; }
+.ink-underline::after {
+  content: ''; position: absolute; inset-inline: 0; bottom: 0.02em; height: 0.08em; border-radius: 9999px;
+  background: currentColor; opacity: 0.55; transform-origin: left; animation: underline 0.8s var(--ease) 0.9s both;
+}
+
+/* Scroll reveal: ScrollReveal adds .reveal-ready to <html>, then .is-in per element */
+[data-reveal] { transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); transition-delay: var(--d, 0ms); }
+.reveal-ready [data-reveal]:not(.is-in) { opacity: 0; transform: translateY(24px); }
+.reveal-ready [data-reveal='scale']:not(.is-in) { opacity: 0; transform: scale(0.97); }
+/* Rental timeline bars fill in once their card is revealed */
+.track-fill { transform-origin: left; transition: transform 1.1s var(--ease) 0.4s; }
+.reveal-ready [data-reveal]:not(.is-in) .track-fill { transform: scaleX(0); }
+
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 .skeleton-shimmer {
   background: linear-gradient(90deg, rgb(var(--panel2)) 25%, rgb(var(--line)) 37%, rgb(var(--panel2)) 63%);
@@ -124,6 +165,7 @@ body { font-feature-settings: 'ss01', 'cv01'; -webkit-font-smoothing: antialiase
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal { animation: none; }
+  .reveal, .hero-drift, .line-mask > span { animation: none; }
+  .reveal-ready [data-reveal]:not(.is-in) { opacity: 1; transform: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

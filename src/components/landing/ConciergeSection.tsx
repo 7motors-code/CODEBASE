@@ -42,7 +42,7 @@ export function ConciergeSection({ whatsappHref }: { whatsappHref: string | null
       <Image src="/cars/land-cruiser.jpg" alt="" fill sizes="100vw" className="object-cover object-right opacity-70" />
       <div className="absolute inset-0 bg-gradient-to-r from-navy-dark via-navy-dark/85 to-navy-dark/20" aria-hidden />
       <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
-        <div>
+        <div data-reveal>
           <h2 className="display text-[34px] leading-[1.08] md:text-5xl">Several cars <span className="text-gold">at once</span></h2>
           <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/75">
             Weddings, company contracts, visiting delegations and family trips up north. Tell us the dates and how many cars, and the office sends one quote.
@@ -68,7 +68,7 @@ export function ConciergeSection({ whatsappHref }: { whatsappHref: string | null
           )}
         </div>
 
-        <div className="rounded-2xl bg-panel p-6 text-ink shadow-modal sm:p-8">
+        <div data-reveal="scale" style={{ ['--d' as string]: '120ms' }} className="rounded-2xl bg-panel p-6 text-ink shadow-modal sm:p-8">
           <h3 className="text-xl font-bold tracking-[-0.01em] text-ink">Request a quote</h3>
           <p className="mt-1 text-sm text-ink2">The office calls back on the number you leave</p>
 

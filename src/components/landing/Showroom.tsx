@@ -108,7 +108,7 @@ export function Showroom({ stats }: { stats: ClassStats }) {
               onClick={() => setIndex(i)}
               className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[#101216] transition-[box-shadow,opacity] duration-150 ${
                 first && i > 0 ? 'ms-2' : ''
-              } ${on ? 'opacity-100 ring-2 ring-gold ring-offset-2 ring-offset-navy-dark' : 'opacity-50 hover:opacity-100'}`}
+              } ${on ? 'opacity-100 ring-2 ring-gold ring-offset-2 ring-offset-bg' : 'opacity-50 hover:opacity-100'}`}
             >
               <Image src={s.src} alt="" fill sizes="80px" className="object-cover" />
               {on && <span className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-gold" aria-hidden />}

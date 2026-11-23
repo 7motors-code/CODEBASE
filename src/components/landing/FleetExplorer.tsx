@@ -79,7 +79,7 @@ export function FleetExplorer({ vehicles, phone, telHref, whatsappHref }: FleetE
     <section id="fleet" className="scroll-mt-20 pb-20 pt-16 md:pb-24 md:pt-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
+          <div data-reveal className="max-w-2xl">
             <h2 className="display text-[34px] leading-[1.08] text-ink md:text-5xl">The fleet</h2>
             <p className="mt-3 text-base leading-relaxed text-ink2">
               {vehicles.length > 0
@@ -146,7 +146,11 @@ export function FleetExplorer({ vehicles, phone, telHref, whatsappHref }: FleetE
           )
         ) : (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((car) => <VehicleCard key={car.id} car={car} onSelect={setSelected} />)}
+            {visible.map((car, i) => (
+              <div key={car.id} data-reveal style={{ ['--d' as string]: `${(i % 3) * 80}ms` }} className="flex">
+                <VehicleCard car={car} onSelect={setSelected} />
+              </div>
+            ))}
           </div>
         )}
 

@@ -31,7 +31,7 @@ export function ExperienceSection({ graceHours, example }: ExperienceSectionProp
   return (
     <section id="how-it-works" className="scroll-mt-20 bg-navy-dark py-20 text-white md:py-28">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-12 lg:gap-16 lg:px-8">
-        <div className="lg:col-span-5">
+        <div data-reveal className="lg:col-span-5">
           <h2 className="display text-[34px] leading-[1.08] md:text-5xl">How renting <span className="text-gold">works</span></h2>
           <p className="mt-4 text-lg leading-relaxed text-white/70">
             Two rates, one grace window, no surprises at the counter.
@@ -46,7 +46,7 @@ export function ExperienceSection({ graceHours, example }: ExperienceSectionProp
           </dl>
         </div>
 
-        <div className="lg:col-span-7">
+        <div data-reveal="scale" style={{ ['--d' as string]: '120ms' }} className="lg:col-span-7">
           <RentalClock graceHours={graceHours} example={example} />
         </div>
       </div>
@@ -112,9 +112,11 @@ function Track({ label, rate, end, grace, pct }: TrackProps) {
         {rate && <span className="font-mono tabular-nums text-ink2">{rate}</span>}
       </div>
       <div className="relative h-4 rounded-full bg-line">
-        <div className="absolute inset-y-0 start-0 rounded-s-full bg-navy" style={{ width: pct(end) }} />
-        <div className="absolute inset-y-0 rounded-e-full bg-gold" style={{ left: pct(end), width: pct(grace) }} />
-        <span className="absolute -top-1 h-5 w-0.5 rounded-full bg-ink" style={{ left: `calc(${pct(end)} - 1px)` }} />
+        <div className="track-fill absolute inset-0">
+          <div className="absolute inset-y-0 start-0 rounded-s-full bg-navy" style={{ width: pct(end) }} />
+          <div className="absolute inset-y-0 rounded-e-full bg-gold" style={{ left: pct(end), width: pct(grace) }} />
+          <span className="absolute -top-1 h-5 w-0.5 rounded-full bg-ink" style={{ left: `calc(${pct(end)} - 1px)` }} />
+        </div>
       </div>
     </div>
   );

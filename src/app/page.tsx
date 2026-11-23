@@ -10,6 +10,8 @@ import { ExperienceSection } from '@/components/landing/ExperienceSection';
 import { DEFAULT_HUBS, LocationsSection, type Hub } from '@/components/landing/LocationsSection';
 import { buildContact } from '@/lib/contact';
 import type { ClassStats } from '@/components/landing/car-classes';
+import { ClassesSection } from '@/components/landing/ClassesSection';
+import { ScrollReveal } from '@/components/landing/ScrollReveal';
 import { ConciergeSection } from '@/components/landing/ConciergeSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 
@@ -101,12 +103,14 @@ export default async function HomePage() {
     <div className="min-h-screen bg-bg text-ink">
       <LandingNav businessName={businessName} phone={contact.phone} telHref={contact.telHref} />
       <main>
-        <HeroSection totalVehicles={vehicles.length} graceHours={graceHours} classStats={classStats} />
+        <HeroSection totalVehicles={vehicles.length} graceHours={graceHours} />
+        <ClassesSection stats={classStats} />
         <FleetExplorer vehicles={vehicles} phone={contact.phone} telHref={contact.telHref} whatsappHref={contact.whatsappHref} />
         <ExperienceSection graceHours={graceHours} example={example} />
         <LocationsSection hubs={hubs} phone={contact.phone} telHref={contact.telHref} whatsappHref={contact.whatsappHref} />
         <ConciergeSection whatsappHref={contact.whatsappHref} />
       </main>
+      <ScrollReveal />
       <LandingFooter businessName={businessName} phone={contact.phone} telHref={contact.telHref} address={address} />
     </div>
   );
