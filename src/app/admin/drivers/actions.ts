@@ -9,6 +9,17 @@ import { int, pkDay, str, PAY_METHODS, clipStr, isoDay, money } from '@/lib/form
 import { newExpenseId } from '@/lib/ids';
 import { oneOf } from '@/lib/security';
 
+/** Remember the month a driver went inactive, so salary stops accruing after it. */
+async function markDriverStatusChange(id: number, status: string) {
+  const key = `driver_inactive:${id}`;
+  if (status === 'INACTIVE') {
+    const value = pkDay().slice(0, 7);
+    await db.insert(schema.settings).values({ key, value }).onConflictDoUpdate({ target: schema.settings.key, set: { value } });
+  } else {
+    await db.delete(schema.settings).where(eq(schema.settings.key, key));
+  }
+}
+
 export async function saveDriver(fd: FormData) {
   const id = int(fd.get('id'));
   await requirePerm('drivers', id ? 'edit' : 'create');
@@ -20,6 +31,10 @@ export async function saveDriver(fd: FormData) {
   };
   if (!data.name) redirect(`/admin/drivers?${id ? `edit=${id}` : 'new=1'}&err=Name+is+required`);
   const photoId = await saveUpload(fd.get('photo'));
+  if (id) {
+    const [before] = await db.select({ status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, id));
+    if (before && before.status !== data.status) await markDriverStatusChange(id, data.status);
+  }
   if (id) await db.update(schema.drivers).set({ ...data, ...(photoId ? { photoId } : {}) }).where(eq(schema.drivers.id, id));
   else await db.insert(schema.drivers).values({ ...data, photoId });
   await log(id ? 'update' : 'create', 'driver', id || data.name);
@@ -51,7 +66,7 @@ export async function deleteDriver(fd: FormData) {
   await requirePerm('drivers', 'delete');
   const id = int(fd.get('id'));
   const [used] = await db.select({ id: schema.bookings.id }).from(schema.bookings).where(eq(schema.bookings.driverId, id));
-  if (used) await db.update(schema.drivers).set({ status: 'INACTIVE' }).where(eq(schema.drivers.id, id));
+  if (used) { await db.update(schema.drivers).set({ status: 'INACTIVE' }).where(eq(schema.drivers.id, id)); await markDriverStatusChange(id, 'INACTIVE'); }
   else await db.delete(schema.drivers).where(eq(schema.drivers.id, id));
   await log(used ? 'deactivate' : 'delete', 'driver', id);
   revalidatePath('/admin', 'layout');

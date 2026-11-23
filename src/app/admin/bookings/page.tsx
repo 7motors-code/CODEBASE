@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, lt, or, sql } from 'drizzle-orm';
 import { Plus, Eye, Pencil, Printer, Clock, CheckCircle2, PlayCircle, Flag } from 'lucide-react';
 import { db, schema } from '@/db';
 import { requirePerm, can } from '@/lib/auth';
 import { T } from '@/lib/prefs';
 import { bookingBalances } from '@/lib/calc';
-import { fmtDateTime, parsePk, pkr } from '@/lib/format';
-import { Badge, Card, Kpi, PageHeader, Pagination, TableWrap, Empty, href, paginate, Plate } from '@/components/ui';
+import { fmtDateTime, likePattern, parsePk, pkr } from '@/lib/format';
+import { Badge, Card, Kpi, PageHeader, Pagination, TableWrap, Empty, href, pageWindow, Plate } from '@/components/ui';
 
 const TABS = ['ALL', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
@@ -16,24 +16,41 @@ export default async function BookingsPage({ searchParams: sp }: { searchParams:
   const canCreate = await can('bookings', 'create');
   const canEdit = await can('bookings', 'edit');
   const from = parsePk(sp.from ?? ''), to = parsePk(sp.to ?? '');
-  const rows = await db.select({ b: schema.bookings, c: schema.customers, v: schema.vehicles, d: schema.drivers.name, l: schema.locations.name })
+  // Filters, search, counts and paging all run in SQL, so the page reads one page of rows
+  // instead of the whole booking history.
+  const q = (sp.q ?? '').trim().slice(0, 100);
+  const like = likePattern(q);
+  const locId = Number(sp.location), drvId = Number(sp.driver);
+  const filters = and(
+    from ? gte(schema.bookings.startAt, from) : sql`true`,
+    to ? lt(schema.bookings.startAt, new Date(to.getTime() + 86400000)) : sql`true`,
+    sp.location && Number.isInteger(locId) ? eq(schema.bookings.locationId, locId) : sql`true`,
+    sp.driver && Number.isInteger(drvId) ? eq(schema.bookings.driverId, drvId) : sql`true`,
+    q ? or(ilike(schema.bookings.id, like), ilike(schema.bookings.groupId, like), ilike(schema.customers.name, like), ilike(schema.customers.phone, like),
+      ilike(schema.customers.cnic, like), ilike(schema.vehicles.model, like), ilike(schema.vehicles.regNo, like)) : sql`true`,
+  );
+  const status = sp.status && TABS.includes(sp.status) ? sp.status : 'ALL';
+  const [statusRows, locations, drivers] = await Promise.all([
+    db.select({ status: schema.bookings.status, n: count() }).from(schema.bookings)
+      .leftJoin(schema.customers, eq(schema.customers.id, schema.bookings.customerId))
+      .leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.bookings.vehicleId))
+      .where(filters).groupBy(schema.bookings.status),
+    db.select().from(schema.locations),
+    db.select({ id: schema.drivers.id, name: schema.drivers.name }).from(schema.drivers),
+  ]);
+  const byStatus = new Map(statusRows.map((r) => [r.status, Number(r.n)]));
+  const countOf = (s: string): number => (s === 'ALL' ? statusRows.reduce((a, r) => a + Number(r.n), 0) : byStatus.get(s) ?? 0);
+  const win = pageWindow(countOf(status), sp.page);
+  const pageRows = await db.select({ b: schema.bookings, c: schema.customers, v: schema.vehicles, d: schema.drivers.name, l: schema.locations.name })
     .from(schema.bookings)
     .leftJoin(schema.customers, eq(schema.customers.id, schema.bookings.customerId))
     .leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.bookings.vehicleId))
     .leftJoin(schema.drivers, eq(schema.drivers.id, schema.bookings.driverId))
     .leftJoin(schema.locations, eq(schema.locations.id, schema.bookings.locationId))
-    .where(and(from ? gte(schema.bookings.startAt, from) : sql`true`, to ? lt(schema.bookings.startAt, new Date(to.getTime() + 86400000)) : sql`true`,
-      Number.isInteger(Number(sp.location)) && sp.location ? eq(schema.bookings.locationId, Number(sp.location)) : sql`true`, Number.isInteger(Number(sp.driver)) && sp.driver ? eq(schema.bookings.driverId, Number(sp.driver)) : sql`true`))
-    .orderBy(desc(schema.bookings.createdAt));
-  const q = (sp.q ?? '').toLowerCase();
-  const searched = rows.filter(({ b, c, v }) => !q || `${b.id} ${b.groupId ?? ''} ${c?.name} ${c?.phone} ${c?.cnic ?? ''} ${v?.model} ${v?.regNo}`.toLowerCase().includes(q));
-  const count = (s: string) => searched.filter((r) => s === 'ALL' || r.b.status === s).length;
-  const status = sp.status && TABS.includes(sp.status) ? sp.status : 'ALL';
-  const list = searched.filter((r) => status === 'ALL' || r.b.status === status);
-  const pg = paginate(list, sp.page);
+    .where(and(filters, status === 'ALL' ? sql`true` : eq(schema.bookings.status, status)))
+    .orderBy(desc(schema.bookings.createdAt)).limit(win.per).offset(win.offset);
+  const pg = { ...win, slice: pageRows };
   const bal = await bookingBalances(pg.slice.map((r) => r.b.id));
-  const locations = await db.select().from(schema.locations);
-  const drivers = await db.select({ id: schema.drivers.id, name: schema.drivers.name }).from(schema.drivers);
   const base = { q: sp.q, status: sp.status, from: sp.from, to: sp.to, location: sp.location, driver: sp.driver };
   const now = new Date();
   return (
@@ -42,10 +59,10 @@ export default async function BookingsPage({ searchParams: sp }: { searchParams:
         {canCreate && <Link href="/admin/bookings/new" className="btn-primary"><Plus size={16} />{t('createBooking')}</Link>}
       </PageHeader>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi featured label="Pending" value={count('PENDING')} tone="yellow" icon={<Clock size={18} />} />
-        <Kpi label="Confirmed" value={count('CONFIRMED')} tone="blue" icon={<CheckCircle2 size={18} />} />
-        <Kpi label="In progress" value={count('IN_PROGRESS')} tone="orange" icon={<PlayCircle size={18} />} />
-        <Kpi label="Completed" value={count('COMPLETED')} tone="green" icon={<Flag size={18} />} />
+        <Kpi featured label="Pending" value={countOf('PENDING')} tone="yellow" icon={<Clock size={18} />} />
+        <Kpi label="Confirmed" value={countOf('CONFIRMED')} tone="blue" icon={<CheckCircle2 size={18} />} />
+        <Kpi label="In progress" value={countOf('IN_PROGRESS')} tone="orange" icon={<PlayCircle size={18} />} />
+        <Kpi label="Completed" value={countOf('COMPLETED')} tone="green" icon={<Flag size={18} />} />
       </div>
       <Card>
         <form className="no-print grid gap-2 p-4 md:grid-cols-[1fr_auto_auto_auto_auto_auto]" method="get">
@@ -59,7 +76,7 @@ export default async function BookingsPage({ searchParams: sp }: { searchParams:
         </form>
         <div className="no-print flex flex-wrap gap-1 border-b border-line px-4 pb-3">
           {TABS.map((s) => <Link key={s} href={href('/admin/bookings', base, { status: s === 'ALL' ? undefined : s, page: undefined })}
-            className={`btn-sm btn ${status === s ? 'bg-navy text-white' : 'btn-ghost'}`}>{s === 'ALL' ? 'All' : s === 'IN_PROGRESS' ? 'In Progress' : s.charAt(0) + s.slice(1).toLowerCase()} <span className="opacity-70">({count(s)})</span></Link>)}
+            className={`btn-sm btn ${status === s ? 'bg-navy text-white' : 'btn-ghost'}`}>{s === 'ALL' ? 'All' : s === 'IN_PROGRESS' ? 'In Progress' : s.charAt(0) + s.slice(1).toLowerCase()} <span className="opacity-70">({countOf(s)})</span></Link>)}
         </div>
         <TableWrap>
           <table className="tbl">

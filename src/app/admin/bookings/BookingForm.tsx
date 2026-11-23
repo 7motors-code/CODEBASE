@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
+import { findCustomers, type BookingFormState } from './actions';
 import { Search, Fingerprint } from 'lucide-react';
 import { ImageInput, SignaturePad } from '@/components/client';
 
@@ -36,13 +37,29 @@ function Buttons({ edit }: { edit: boolean }) {
   );
 }
 
-export default function BookingForm({ action, bookingId, vehicles, drivers, customers, locations, types, now, existing, err }: {
-  action: (fd: FormData) => void; bookingId: string; vehicles: V[]; drivers: D[]; customers: C[]; locations: L[]; types: string[]; now: string; existing?: Existing; err?: string;
+export default function BookingForm({ action, bookingId, vehicles, drivers, customer, locations, types, now, existing, err }: {
+  action: (prev: BookingFormState, fd: FormData) => Promise<BookingFormState>; bookingId: string; vehicles: V[]; drivers: D[]; customer: C | null; locations: L[]; types: string[]; now: string; existing?: Existing; err?: string;
 }) {
   const ex = existing;
-  const [cust, setCust] = useState<Partial<C>>(ex ? customers.find((c) => c.id === ex.customerId) ?? {} : {});
+  // Validation errors come back as state, so nothing typed or picked on the form is lost.
+  const [state, formAction] = useFormState(action, { error: err ?? null, at: 0 });
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!state.error || !state.at) return;
+    errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    errorRef.current?.focus({ preventScroll: true });
+  }, [state]);
+  const [cust, setCust] = useState<Partial<C>>(customer ?? {});
   const [lookup, setLookup] = useState('');
+  const [matches, setMatches] = useState<C[]>([]);
   const [showLookup, setShowLookup] = useState(false);
+  // Existing-customer search runs on the server, debounced, and only while the picker is open.
+  useEffect(() => {
+    if (!showLookup) return;
+    let live = true;
+    const t = setTimeout(() => { findCustomers(lookup).then((r) => { if (live) setMatches(r); }).catch(() => { if (live) setMatches([]); }); }, 200);
+    return () => { live = false; clearTimeout(t); };
+  }, [lookup, showLookup]);
   const [selected, setSelected] = useState<number[]>(ex ? [ex.vehicleId] : []);
   const [vq, setVq] = useState('');
   const [durationType, setDurationType] = useState(ex?.durationType ?? 'DAY');
@@ -74,16 +91,15 @@ export default function BookingForm({ action, bookingId, vehicles, drivers, cust
   const pending = Math.max(0, tot - advance);
   const meter = selected.length === 1 ? vehicles.find((v) => v.id === selected[0])?.meterReading : undefined;
 
-  const matches = lookup.length >= 1 ? customers.filter((c) => `${c.name} ${c.phone} ${c.cnic ?? ''} ${c.id}`.toLowerCase().includes(lookup.toLowerCase())).slice(0, 8) : customers.slice(0, 8);
   const vList = vehicles.filter((v) => `${v.model} ${v.regNo}`.toLowerCase().includes(vq.toLowerCase()));
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={formAction} className="space-y-6">
       <input type="hidden" name="bookingId" value={bookingId} />
       <input type="hidden" name="customerId" value={cust.id ?? ''} />
       {selected.map((id) => <input key={id} type="hidden" name="vehicleIds" value={id} />)}
       <input type="hidden" name="rentAmount" value={rent} />
-      {err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{err}</p>}
+      {state.error && <p ref={errorRef} tabIndex={-1} role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad outline-none">{state.error}</p>}
 
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-navy/30 bg-navy-soft p-4">
         <span className="text-xs font-medium text-muted">Booking ID</span>

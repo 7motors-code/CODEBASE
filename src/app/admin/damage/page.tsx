@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { desc, eq } from 'drizzle-orm';
+import { count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { Search, Eye, Pencil, Trash2, TriangleAlert } from 'lucide-react';
 import { db, schema } from '@/db';
 import { requirePerm, can } from '@/lib/auth';
 import { damagePaid } from '@/lib/calc';
-import { fmtDate, fmtTime, pkInput, pkr } from '@/lib/format';
-import { Badge, Card, Field, Modal, PageHeader, Pagination, TableWrap, Thumb, Empty, href, paginate } from '@/components/ui';
+import { fmtDate, fmtTime, likePattern, pkInput, pkr } from '@/lib/format';
+import { Badge, Card, Field, Modal, PageHeader, Pagination, TableWrap, Thumb, Empty, href, pageWindow } from '@/components/ui';
 import { ConfirmForm, ImageInput, PrintButton, Submit } from '@/components/client';
 import { saveDamage, setDamageStatus, updateDamage, deleteDamage } from './actions';
 import { addPayment } from '../bookings/actions';
@@ -14,22 +14,36 @@ export default async function DamagePage({ searchParams: sp }: { searchParams: {
   await requirePerm('damage');
   const [canCreate, canEdit, canDelete, canPay] = await Promise.all([can('damage', 'create'), can('damage', 'edit'), can('damage', 'delete'), can('payments', 'create')]);
   const types = await db.select().from(schema.lookups).where(eq(schema.lookups.kind, 'DAMAGE_TYPE')).orderBy(schema.lookups.name);
-  const bookings = await db.select({ b: schema.bookings, c: schema.customers, v: schema.vehicles }).from(schema.bookings)
-    .leftJoin(schema.customers, eq(schema.customers.id, schema.bookings.customerId)).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.bookings.vehicleId))
-    .orderBy(desc(schema.bookings.startAt)).limit(500);
-  const bq = (sp.bq ?? '').toLowerCase().replace(/[\s-]/g, '');
-  const bMatches = bq ? bookings.filter(({ b, c, v }) => `${b.id}${c?.name}${c?.phone}${c?.cnic ?? ''}${v?.regNo}`.toLowerCase().replace(/[\s-]/g, '').includes(bq)).slice(0, 9) : [];
-  const sel = sp.booking ? bookings.find((r) => r.b.id === sp.booking) : undefined;
+  // Booking picker searches the whole history in SQL (not just the newest 500), ignoring
+  // spaces and dashes the way staff type CNICs, phones and plates.
+  const bookingSelect = () => db.select({ b: schema.bookings, c: schema.customers, v: schema.vehicles }).from(schema.bookings)
+    .leftJoin(schema.customers, eq(schema.customers.id, schema.bookings.customerId)).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.bookings.vehicleId));
+  const bq = (sp.bq ?? '').trim().replace(/[\s-]/g, '').slice(0, 60);
+  const bLike = likePattern(bq);
+  const squash = (col: unknown) => sql`regexp_replace(coalesce(${col}, ''), '[[:space:]-]', '', 'g') ilike ${bLike}`;
+  const [bMatches, sel] = await Promise.all([
+    bq ? bookingSelect().where(or(squash(schema.bookings.id), squash(schema.customers.name), squash(schema.customers.phone), squash(schema.customers.cnic), squash(schema.vehicles.regNo)))
+      .orderBy(desc(schema.bookings.startAt)).limit(9) : Promise.resolve([]),
+    sp.booking ? bookingSelect().where(eq(schema.bookings.id, sp.booking)).then((r) => r[0]) : Promise.resolve(undefined),
+  ]);
 
-  const rows = await db.select({ d: schema.damages, c: schema.customers.name, v: schema.vehicles }).from(schema.damages)
-    .leftJoin(schema.customers, eq(schema.customers.id, schema.damages.customerId)).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.damages.vehicleId)).orderBy(desc(schema.damages.createdAt));
-  const q = (sp.q ?? '').toLowerCase();
-  const list = rows.filter(({ d, c, v }) => !q || `${d.id} ${d.bookingId} ${c} ${v?.regNo} ${v?.model} ${d.damageType}`.toLowerCase().includes(q));
-  const pg = paginate(list, sp.page);
-  const paid = await damagePaid(rows.map((r) => r.d.id));
-  const viewing = sp.view ? rows.find((r) => r.d.id === sp.view) : undefined;
-  const editing = sp.edit ? rows.find((r) => r.d.id === sp.edit) : undefined;
-  const paying = sp.pay ? rows.find((r) => r.d.id === sp.pay) : undefined;
+  const damageSelect = () => db.select({ d: schema.damages, c: schema.customers.name, v: schema.vehicles }).from(schema.damages)
+    .leftJoin(schema.customers, eq(schema.customers.id, schema.damages.customerId)).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.damages.vehicleId));
+  const q = (sp.q ?? '').trim().slice(0, 100);
+  const like = likePattern(q);
+  const listWhere = q ? or(ilike(schema.damages.id, like), ilike(schema.damages.bookingId, like), ilike(schema.customers.name, like), ilike(schema.vehicles.regNo, like), ilike(schema.vehicles.model, like), ilike(schema.damages.damageType, like)) : sql`true`;
+  const openId = sp.view ?? sp.edit ?? sp.pay;
+  const [[total], opened] = await Promise.all([
+    db.select({ n: count() }).from(schema.damages).leftJoin(schema.customers, eq(schema.customers.id, schema.damages.customerId)).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.damages.vehicleId)).where(listWhere),
+    openId ? damageSelect().where(eq(schema.damages.id, openId)).then((r) => r[0]) : Promise.resolve(undefined),
+  ]);
+  const win = pageWindow(Number(total.n), sp.page);
+  const pageRows = await damageSelect().where(listWhere).orderBy(desc(schema.damages.createdAt)).limit(win.per).offset(win.offset);
+  const pg = { ...win, slice: pageRows };
+  const paid = await damagePaid([...pageRows.map((r) => r.d.id), ...(opened ? [opened.d.id] : [])]);
+  const viewing = sp.view ? opened : undefined;
+  const editing = sp.edit ? opened : undefined;
+  const paying = sp.pay ? opened : undefined;
 
   return (
     <div className="space-y-6">

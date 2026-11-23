@@ -1,25 +1,37 @@
 import Link from 'next/link';
-import { and, desc, eq, gte, lt } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, inArray, lt, or, sql } from 'drizzle-orm';
 import { Plus, Pencil, Mail, Phone, IdCard, MapPin, CalendarDays, Ban, CheckCircle2, Trash2, FileText, UserRound } from 'lucide-react';
 import { db, schema } from '@/db';
 import { requirePerm, can } from '@/lib/auth';
 import { bookingBalances, customerTotals, damagePaid } from '@/lib/calc';
-import { fmtDate, fmtDateTime, monthLabel, monthRange, pkMonth, pkr } from '@/lib/format';
-import { Avatar, Badge, Card, Field, Modal, PageHeader, Pagination, TableWrap, Thumb, Empty, href, paginate } from '@/components/ui';
+import { fmtDate, fmtDateTime, likePattern, monthLabel, monthRange, pkMonth, pkr } from '@/lib/format';
+import { Avatar, Badge, Card, Field, Modal, PageHeader, Pagination, TableWrap, Thumb, Empty, href, pageWindow } from '@/components/ui';
 import { ConfirmForm, ImageInput, PrintButton, Submit } from '@/components/client';
 import { saveCustomer, setBlocked, deleteCustomer } from './actions';
 
 export default async function CustomersPage({ searchParams: sp }: { searchParams: { q?: string; id?: string; tab?: string; new?: string; edit?: string; err?: string; page?: string; type?: string; statement?: string } }) {
   await requirePerm('customers');
   const [canCreate, canEdit, canDelete] = await Promise.all([can('customers', 'create'), can('customers', 'edit'), can('customers', 'delete')]);
-  const all = await db.select().from(schema.customers).orderBy(desc(schema.customers.createdAt));
-  const counts = await db.select({ c: schema.bookings.customerId }).from(schema.bookings);
-  const q = (sp.q ?? '').toLowerCase();
-  const list = all.filter((c) => (!q || `${c.id} ${c.name} ${c.phone} ${c.cnic ?? ''} ${c.email ?? ''}`.toLowerCase().includes(q)) && (!sp.type || (sp.type === 'credit' ? c.isCredit : !c.isCredit)));
-  const pg = paginate(list, sp.page);
+  // Search, type filter, paging and booking counts run in SQL (one page of customers at a time).
+  const q = (sp.q ?? '').trim().slice(0, 100);
+  const like = likePattern(q);
+  const where = and(
+    q ? or(ilike(schema.customers.id, like), ilike(schema.customers.name, like), ilike(schema.customers.phone, like), ilike(schema.customers.cnic, like), ilike(schema.customers.email, like)) : sql`true`,
+    sp.type === 'credit' ? eq(schema.customers.isCredit, true) : sp.type === 'walkin' ? eq(schema.customers.isCredit, false) : sql`true`,
+  );
+  const [[total], sel, editing] = await Promise.all([
+    db.select({ n: count() }).from(schema.customers).where(where),
+    sp.id ? db.select().from(schema.customers).where(eq(schema.customers.id, sp.id)).then((r) => r[0]) : Promise.resolve(undefined),
+    sp.edit ? db.select().from(schema.customers).where(eq(schema.customers.id, sp.edit)).then((r) => r[0]) : Promise.resolve(undefined),
+  ]);
+  const win = pageWindow(Number(total.n), sp.page);
+  const pageRows = await db.select().from(schema.customers).where(where).orderBy(desc(schema.customers.createdAt)).limit(win.per).offset(win.offset);
+  const pg = { ...win, slice: pageRows };
+  const countRows = pageRows.length
+    ? await db.select({ c: schema.bookings.customerId, n: count() }).from(schema.bookings).where(inArray(schema.bookings.customerId, pageRows.map((c) => c.id))).groupBy(schema.bookings.customerId)
+    : [];
+  const bookingCount = new Map(countRows.map((r) => [r.c, Number(r.n)]));
   const base = { q: sp.q, type: sp.type };
-  const sel = sp.id ? all.find((c) => c.id === sp.id) : undefined;
-  const editing = sp.edit ? all.find((c) => c.id === sp.edit) : undefined;
   return (
     <div className="space-y-6">
       <PageHeader title="Customers" subtitle="Customer profiles, history and credit (monthly account) customers">
@@ -40,7 +52,7 @@ export default async function CustomersPage({ searchParams: sp }: { searchParams
                 <tr key={c.id} className={sel?.id === c.id ? 'bg-navy-soft' : ''}>
                   <td><Link className="link font-mono text-xs" href={href('/admin/customers', base, { id: c.id, page: sp.page })}>{c.id}</Link></td>
                   <td><Link href={href('/admin/customers', base, { id: c.id, page: sp.page })} className="flex items-center gap-2 font-medium"><Avatar name={c.name} />{c.name}{c.isCredit && <span className="badge bg-navy-soft text-navy">Credit</span>}</Link></td>
-                  <td>{c.email ?? '—'}</td><td>{c.phone}</td><td><Badge status={c.status} /></td><td>{counts.filter((x) => x.c === c.id).length}</td><td className="max-w-[160px] truncate">{c.address ?? '—'}</td><td>{fmtDate(c.createdAt)}</td>
+                  <td>{c.email ?? '—'}</td><td>{c.phone}</td><td><Badge status={c.status} /></td><td className="font-mono tabular-nums">{bookingCount.get(c.id) ?? 0}</td><td className="max-w-[160px] truncate">{c.address ?? '—'}</td><td>{fmtDate(c.createdAt)}</td>
                 </tr>))}
             </tbody></table></TableWrap>
           <Pagination {...pg} makeHref={(p) => href('/admin/customers', base, { page: p })} />

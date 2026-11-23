@@ -1,27 +1,36 @@
 import Link from 'next/link';
-import { and, desc, eq, gte, lt, ne, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, lt, ne, or, sql } from 'drizzle-orm';
 import { Eye, Wallet, CalendarDays, Clock, BadgeCheck, TriangleAlert } from 'lucide-react';
 import { db, schema } from '@/db';
 import { requirePerm } from '@/lib/auth';
-import { bookingBalances } from '@/lib/calc';
-import { addMonths, dayRange, fmtDate, fmtDateTime, monthLabel, parsePk, pkDay, pkMonth, pkr } from '@/lib/format';
-import { Badge, Card, Kpi, PageHeader, Pagination, TableWrap, Empty, href, paginate, Plate } from '@/components/ui';
+import { bookingBalances, fineSql, pendingSql } from '@/lib/calc';
+import { addMonths, dayRange, fmtDate, fmtDateTime, likePattern, monthLabel, parsePk, pkDay, pkMonth, pkr } from '@/lib/format';
+import { Badge, Card, Kpi, PageHeader, Pagination, TableWrap, Empty, href, pageWindow, Plate } from '@/components/ui';
 
 export default async function PaymentsPage({ searchParams: sp }: { searchParams: { q?: string; from?: string; to?: string; page?: string; cal?: string; status?: string; tab?: string } }) {
   await requirePerm('payments');
   const from = parsePk(sp.from ?? ''), to = parsePk(sp.to ?? '');
   const toEnd = to ? new Date(to.getTime() + 86400000) : null;
-  const rows = await db.select({ b: schema.bookings, c: schema.customers, v: schema.vehicles, l: schema.locations.name }).from(schema.bookings)
+  // Date range applies to the KPIs; search and paid/pending also narrow the list. All in SQL.
+  const inRange = and(ne(schema.bookings.status, 'CANCELLED'), from ? gte(schema.bookings.startAt, from) : sql`true`, toEnd ? lt(schema.bookings.startAt, toEnd) : sql`true`);
+  const q = (sp.q ?? '').trim().slice(0, 100);
+  const like = likePattern(q);
+  const listWhere = and(inRange,
+    q ? or(ilike(schema.bookings.id, like), ilike(schema.customers.phone, like), ilike(schema.customers.name, like)) : sql`true`,
+    sp.status === 'pending' ? sql`${pendingSql} > 0` : sp.status === 'paid' ? sql`${pendingSql} = 0` : sql`true`);
+  const [[totals], [listCount]] = await Promise.all([
+    db.select({ rev: sql<number>`coalesce(sum("bookings"."total_amount" + ${fineSql}), 0)::bigint`, pending: sql<number>`coalesce(sum(${pendingSql}), 0)::bigint` })
+      .from(schema.bookings).where(inRange),
+    db.select({ n: count() }).from(schema.bookings).leftJoin(schema.customers, eq(schema.customers.id, schema.bookings.customerId)).where(listWhere),
+  ]);
+  const win = pageWindow(Number(listCount.n), sp.page);
+  const pageRows = await db.select({ b: schema.bookings, c: schema.customers, v: schema.vehicles, l: schema.locations.name }).from(schema.bookings)
     .leftJoin(schema.customers, eq(schema.customers.id, schema.bookings.customerId)).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.bookings.vehicleId))
     .leftJoin(schema.locations, eq(schema.locations.id, schema.bookings.locationId))
-    .where(and(ne(schema.bookings.status, 'CANCELLED'), from ? gte(schema.bookings.startAt, from) : sql`true`, toEnd ? lt(schema.bookings.startAt, toEnd) : sql`true`))
-    .orderBy(desc(schema.bookings.startAt));
-  const bal = await bookingBalances(rows.map((r) => r.b.id));
-  const q = (sp.q ?? '').toLowerCase();
-  const list = rows.filter(({ b, c }) => (!q || `${b.id} ${c?.phone} ${c?.name}`.toLowerCase().includes(q)) && (!sp.status || (sp.status === 'pending' ? (bal.get(b.id)?.pending ?? 0) > 0 : (bal.get(b.id)?.pending ?? 0) === 0)));
-  const pg = paginate(list, sp.page);
-  let totalRev = 0, pending = 0;
-  rows.forEach((r) => { const x = bal.get(r.b.id)!; totalRev += x.total + x.fine; pending += x.pending; });
+    .where(listWhere).orderBy(desc(schema.bookings.startAt)).limit(win.per).offset(win.offset);
+  const pg = { ...win, slice: pageRows };
+  const bal = await bookingBalances(pageRows.map((r) => r.b.id));
+  const totalRev = Number(totals.rev), pending = Number(totals.pending);
   const payWhere = (extra?: ReturnType<typeof sql>) => and(from ? gte(schema.payments.paidAt, from) : sql`true`, toEnd ? lt(schema.payments.paidAt, toEnd) : sql`true`, extra ?? sql`true`);
   const [received] = await db.select({ s: sql<number>`coalesce(sum(${schema.payments.amount}),0)::int` }).from(schema.payments).where(payWhere(sql`${schema.payments.type} <> 'DAMAGE'`));
   const [damage] = await db.select({ s: sql<number>`coalesce(sum(${schema.payments.amount}),0)::int` }).from(schema.payments).where(payWhere(sql`${schema.payments.type} = 'DAMAGE'`));
@@ -38,7 +47,13 @@ export default async function PaymentsPage({ searchParams: sp }: { searchParams:
     const n = new Date(Number(calMonth.slice(0, 4)), Number(calMonth.slice(5)), 0).getDate();
     calDays = Array.from({ length: n }, (_, i) => { const d = `${calMonth}-${String(i + 1).padStart(2, '0')}`; return { d, s: ps.filter((p) => pkDay(p.at) === d).reduce((x, p) => x + p.a, 0) }; });
   }
-  const recent = sp.tab === 'all' ? await db.select({ p: schema.payments, c: schema.customers.name }).from(schema.payments).leftJoin(schema.customers, eq(schema.customers.id, schema.payments.customerId)).where(payWhere()).orderBy(desc(schema.payments.paidAt)).limit(300) : [];
+  // "All payment records" tab: same date range plus search, paged like the booking list.
+  const recWhere = payWhere(q ? sql`(${schema.payments.id} ilike ${like} or ${schema.payments.bookingId} ilike ${like} or ${schema.customers.name} ilike ${like} or ${schema.customers.phone} ilike ${like})` : undefined);
+  const [recCount] = sp.tab === 'all'
+    ? await db.select({ n: count() }).from(schema.payments).leftJoin(schema.customers, eq(schema.customers.id, schema.payments.customerId)).where(recWhere)
+    : [{ n: 0 }];
+  const recWin = pageWindow(Number(recCount.n), sp.page, 25);
+  const recent = sp.tab === 'all' ? await db.select({ p: schema.payments, c: schema.customers.name }).from(schema.payments).leftJoin(schema.customers, eq(schema.customers.id, schema.payments.customerId)).where(recWhere).orderBy(desc(schema.payments.paidAt)).limit(recWin.per).offset(recWin.offset) : [];
   return (
     <div className="space-y-6">
       <PageHeader title="Payments" subtitle={from || to ? `${sp.from ? fmtDate(sp.from) : '…'} – ${sp.to ? fmtDate(sp.to) : '…'}` : 'All time'}>
@@ -59,7 +74,7 @@ export default async function PaymentsPage({ searchParams: sp }: { searchParams:
           <label className="flex items-center gap-2 text-sm text-muted">From <input type="date" name="from" defaultValue={sp.from} className="input" /></label>
           <label className="flex items-center gap-2 text-sm text-muted">To <input type="date" name="to" defaultValue={sp.to} className="input" /></label>
           <input name="q" defaultValue={sp.q} placeholder="Search by booking ID, phone or customer name" aria-label="Search by booking ID, phone or customer name" className="input" />
-          <select name="status" defaultValue={sp.status} aria-label="Payment status" className="input"><option value="">All</option><option value="pending">Pending</option><option value="paid">Fully paid</option></select>
+          <select name="status" defaultValue={sp.status} aria-label="Payment status" className={`input ${sp.tab === 'all' ? 'hidden' : ''}`} disabled={sp.tab === 'all'}><option value="">All</option><option value="pending">Pending</option><option value="paid">Fully paid</option></select>
           <button className="btn-ghost">Apply</button>
         </form>
         {calMonth && (
@@ -69,11 +84,13 @@ export default async function PaymentsPage({ searchParams: sp }: { searchParams:
               {calDays.map((x) => <Link key={x.d} href={href('/admin/payments', { ...base, from: x.d, to: x.d })} className={`rounded-lg p-2 ${x.s ? 'bg-ok-soft' : 'bg-panel2'} hover:ring-1 hover:ring-navy/20`}><span className="block font-medium">{Number(x.d.slice(8))}</span><span className="text-[11px] text-muted">{x.s ? `${Math.round(x.s / 1000)}k` : '—'}</span></Link>)}
             </div>
           </div>)}
-        {sp.tab === 'all' ? (
+        {sp.tab === 'all' ? (<>
           <TableWrap><table className="tbl"><thead><tr><th>Date</th><th>Receipt</th><th>Customer</th><th>Booking / damage</th><th>Type</th><th>Method</th><th>Amount</th></tr></thead><tbody>
             {recent.length === 0 && <Empty cols={7} />}
             {recent.map(({ p, c }) => <tr key={p.id}><td>{fmtDateTime(p.paidAt)}</td><td><Link className="link font-mono text-xs" href={`/admin/payments/receipt/${p.id}`}>{p.id}</Link></td><td>{c}</td><td className="font-mono text-xs">{p.bookingId ?? p.damageId}</td><td><Badge status={p.type} label={p.type.charAt(0) + p.type.slice(1).toLowerCase()} /></td><td>{p.method}</td><td className="font-medium">{pkr(p.amount)}</td></tr>)}
           </tbody></table></TableWrap>
+          <Pagination {...recWin} makeHref={(p) => href('/admin/payments', { ...base, tab: 'all' }, { page: p })} />
+        </>
         ) : (<>
           <TableWrap><table className="tbl">
             <thead><tr><th>Pending</th><th>Total</th><th>Fine</th><th>Paid</th><th>Booking ID</th><th>Customer</th><th>Car (plate)</th><th>Location</th><th>Status</th><th>Date</th><th className="text-end">Actions</th></tr></thead>

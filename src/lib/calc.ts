@@ -2,7 +2,7 @@ import 'server-only';
 import { and, eq, gte, inArray, lt, ne, sql } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import type { Booking, Vehicle } from '@/db/schema';
-import { dayRange, monthRange, pkDay } from './format';
+import { dayRange, monthRange, pkDay, pkParts } from './format';
 import { cacheGet, cacheSet } from './redis';
 
 export type VStatus = 'AVAILABLE' | 'RESERVED' | 'BOOKED' | 'RETURN' | 'MAINTENANCE';
@@ -121,13 +121,15 @@ export type Balance = { total: number; fine: number; paid: number; pending: numb
 export async function bookingBalances(ids: string[]): Promise<Map<string, Balance>> {
   const out = new Map<string, Balance>();
   if (!ids.length) return out;
-  const bs = await db.select({ id: schema.bookings.id, total: schema.bookings.totalAmount, status: schema.bookings.status })
-    .from(schema.bookings).where(inArray(schema.bookings.id, ids));
-  const fines = await db.select({ id: schema.receivings.bookingId, fine: schema.receivings.fine })
-    .from(schema.receivings).where(inArray(schema.receivings.bookingId, ids));
-  const pays = await db.select({ id: schema.payments.bookingId, s: sql<number>`coalesce(sum(${schema.payments.amount}),0)::int` })
-    .from(schema.payments).where(and(inArray(schema.payments.bookingId, ids), inArray(schema.payments.type, ['ADVANCE', 'RENT', 'FINE'])))
-    .groupBy(schema.payments.bookingId);
+  const [bs, fines, pays] = await Promise.all([
+    db.select({ id: schema.bookings.id, total: schema.bookings.totalAmount, status: schema.bookings.status })
+      .from(schema.bookings).where(inArray(schema.bookings.id, ids)),
+    db.select({ id: schema.receivings.bookingId, fine: schema.receivings.fine })
+      .from(schema.receivings).where(inArray(schema.receivings.bookingId, ids)),
+    db.select({ id: schema.payments.bookingId, s: sql<number>`coalesce(sum(${schema.payments.amount}),0)::int` })
+      .from(schema.payments).where(and(inArray(schema.payments.bookingId, ids), inArray(schema.payments.type, ['ADVANCE', 'RENT', 'FINE'])))
+      .groupBy(schema.payments.bookingId),
+  ]);
   for (const b of bs) {
     const fine = fines.find((f) => f.id === b.id)?.fine ?? 0;
     const paid = pays.find((p) => p.id === b.id)?.s ?? 0;
@@ -136,6 +138,15 @@ export async function bookingBalances(ids: string[]): Promise<Map<string, Balanc
   }
   return out;
 }
+
+/*
+ * The same balance as bookingBalances, as SQL expressions over the outer "bookings" row,
+ * so list pages can filter, sum and page by pending amount inside the database.
+ * (receivings.booking_id is unique, so the fine subquery returns at most one row.)
+ */
+export const fineSql = sql<number>`coalesce((select r.fine from receivings r where r.booking_id = "bookings"."id"), 0)`;
+export const rentPaidSql = sql<number>`coalesce((select sum(p.amount) from payments p where p.booking_id = "bookings"."id" and p.type in ('ADVANCE', 'RENT', 'FINE')), 0)`;
+export const pendingSql = sql<number>`greatest(0, (case when "bookings"."status" = 'CANCELLED' then 0 else "bookings"."total_amount" end) + ${fineSql} - ${rentPaidSql})`;
 
 export async function damagePaid(ids: string[]) {
   const m = new Map<string, number>();
@@ -197,12 +208,19 @@ export async function driverLedger(driverIds?: number[]) {
   const paidRows = await db.select({ id: schema.driverPayments.driverId, s: sql<number>`coalesce(sum(${schema.driverPayments.amount}),0)::int` })
     .from(schema.driverPayments).groupBy(schema.driverPayments.driverId);
   const running = await db.select({ id: schema.bookings.driverId }).from(schema.bookings).where(eq(schema.bookings.status, 'IN_PROGRESS'));
-  const now = new Date();
+  // Month a salaried driver was made inactive (settings key driver_inactive:<id> = YYYY-MM).
+  const stops = await db.select().from(schema.settings).where(sql`${schema.settings.key} like 'driver_inactive:%'`);
+  const stopMonth = new Map(stops.map((r) => [Number(r.key.split(':')[1]), r.value]));
+  const nowP = pkParts(new Date());
   return list.map((d) => {
     let earned = 0;
     if (d.paymentBasis === 'SALARY') {
-      const c = new Date(d.createdAt);
-      const months = (now.getFullYear() - c.getFullYear()) * 12 + (now.getMonth() - c.getMonth()) + 1;
+      // Months counted in Pakistan time, from the month they joined through this month, or
+      // through the month they were made inactive (an inactive driver stops accruing salary).
+      const c = pkParts(new Date(d.createdAt));
+      const stop = d.status === 'INACTIVE' ? stopMonth.get(d.id) : undefined;
+      const [ey, em] = stop && /^\d{4}-\d{2}$/.test(stop) ? stop.split('-').map(Number) : [nowP.y, nowP.m];
+      const months = (ey - c.y) * 12 + (em - c.m) + 1;
       earned = Math.max(1, months) * d.monthlySalary;
     } else earned = earnedRows.find((r) => r.id === d.id)?.s ?? 0;
     const paid = paidRows.find((r) => r.id === d.id)?.s ?? 0;

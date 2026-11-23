@@ -95,5 +95,10 @@ export function isoMonth(v: FormDataEntryValue | null | undefined) {
   const s = String(v ?? '').trim();
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(s) ? s : null;
 }
+/** `%term%` for ILIKE with the user's own % and _ escaped, so they match literally. */
+export function likePattern(term: string) {
+  return `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
 /** Payment methods offered across the admin forms. */
 export const PAY_METHODS = ['Cash', 'Bank transfer', 'JazzCash', 'Easypaisa', 'Card', 'Cheque'] as const;

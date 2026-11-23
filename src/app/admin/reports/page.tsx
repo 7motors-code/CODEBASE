@@ -26,8 +26,7 @@ export default async function ReportsPage({ searchParams: sp }: { searchParams: 
   const today = pkDay();
   const from = sp.from && /^\d{4}-\d{2}-\d{2}$/.test(sp.from) ? sp.from : today;
   const to = sp.to && /^\d{4}-\d{2}-\d{2}$/.test(sp.to) ? sp.to : from > today ? from : today;
-  const r = await buildReport(from, to);
-  const business = await getSetting('business_name', 'Seven Motors');
+  const [r, business] = await Promise.all([buildReport(from, to), getSetting('business_name', 'Seven Motors')]);
   const pg = paginate(r.rows, sp.page, 20);
   return (
     <div className="space-y-6">

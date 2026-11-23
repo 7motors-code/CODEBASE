@@ -162,6 +162,16 @@ export function Pagination({ page, pages, total, per, makeHref }: { page: number
   );
 }
 
+/**
+ * Page maths for lists paged in SQL: clamps the page to 1..pages and returns the
+ * offset to pass to `.limit(per).offset(offset)`.
+ */
+export function pageWindow(total: number, pageParam: string | undefined, per = 15) {
+  const pages = Math.max(1, Math.ceil(total / per));
+  const page = Math.min(pages, Math.max(1, parseInt(pageParam ?? '1', 10) || 1));
+  return { page, pages, total, per, offset: (page - 1) * per };
+}
+
 export function paginate<T>(rows: T[], pageParam: string | undefined, per = 15) {
   const total = rows.length;
   const pages = Math.max(1, Math.ceil(total / per));

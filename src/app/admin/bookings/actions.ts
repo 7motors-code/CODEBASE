@@ -1,17 +1,51 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { requirePerm, log } from '@/lib/auth';
 import { saveDataUrl, saveUpload } from '@/lib/files';
-import { int, money, parsePk, str } from '@/lib/format';
+import { int, likePattern, money, parsePk, str } from '@/lib/format';
 import { newBookingId, newCustomerId, newGroupId, newPaymentId } from '@/lib/ids';
 import { driverClash, rentFor, vehicleClash, bookingBalances, withBookingLock } from '@/lib/calc';
 import { oneOf, safeBack } from '@/lib/security';
 
 function fail(path: string, msg: string): never {
   redirect(`${path}${path.includes('?') ? '&' : '?'}err=${encodeURIComponent(msg)}`);
+}
+
+/** A validation problem in the booking form: shown on the form, without leaving the page. */
+class BookingFormError extends Error {}
+function bail(msg: string): never {
+  throw new BookingFormError(msg);
+}
+
+export type BookingFormState = { error: string | null; at: number };
+
+/**
+ * useFormState entry points for the booking form. A validation error comes back as state, so
+ * React keeps everything the user typed and picked (a redirect would reload an empty form).
+ * Success still redirects to the booking.
+ */
+export async function createBookingForm(_prev: BookingFormState, fd: FormData): Promise<BookingFormState> {
+  try { await createBooking(fd); } catch (e) { if (e instanceof BookingFormError) return { error: e.message, at: Date.now() }; throw e; }
+  return { error: null, at: Date.now() };
+}
+export async function updateBookingForm(_prev: BookingFormState, fd: FormData): Promise<BookingFormState> {
+  try { await updateBooking(fd); } catch (e) { if (e instanceof BookingFormError) return { error: e.message, at: Date.now() }; throw e; }
+  return { error: null, at: Date.now() };
+}
+
+/** Existing-customer lookup for the booking form (8 matches), instead of shipping every customer to the page. */
+export async function findCustomers(term: string) {
+  await requirePerm('bookings', 'view');
+  const q = String(term ?? '').trim().slice(0, 60);
+  const cols = { id: schema.customers.id, name: schema.customers.name, phone: schema.customers.phone, cnic: schema.customers.cnic, address: schema.customers.address, email: schema.customers.email, isCredit: schema.customers.isCredit, status: schema.customers.status };
+  if (!q) return db.select(cols).from(schema.customers).orderBy(desc(schema.customers.createdAt)).limit(8);
+  const like = likePattern(q);
+  return db.select(cols).from(schema.customers)
+    .where(or(ilike(schema.customers.name, like), ilike(schema.customers.phone, like), ilike(schema.customers.cnic, like), ilike(schema.customers.id, like)))
+    .orderBy(schema.customers.name).limit(8);
 }
 
 /** Find the customer by id, else by phone/CNIC, else create a new one */
@@ -46,20 +80,20 @@ export async function createBooking(fd: FormData) {
   const back = '/admin/bookings/new';
   const vehicleIds = fd.getAll('vehicleIds').map((v) => int(v)).filter(Boolean);
   const start = parsePk(String(fd.get('start'))), end = parsePk(String(fd.get('end')));
-  if (!vehicleIds.length) fail(back, 'Select at least one vehicle.');
-  if (!start || !end || end <= start) fail(back, 'End date/time must be after the start.');
+  if (!vehicleIds.length) bail('Select at least one vehicle.');
+  if (!start || !end || end <= start) bail('End date/time must be after the start.');
   const durationType = fd.get('durationType') === '12H' ? '12H' : 'DAY';
   const driverId = int(fd.get('driverId')) || null;
   const cars = await db.select().from(schema.vehicles).where(and(inArray(schema.vehicles.id, vehicleIds), eq(schema.vehicles.active, true)));
-  if (cars.length !== new Set(vehicleIds).size) fail(back, 'One of the selected vehicles no longer exists.');
+  if (cars.length !== new Set(vehicleIds).size) bail('One of the selected vehicles no longer exists.');
   for (const c of cars) {
     const clash = await vehicleClash(c.id, start, end);
-    if (clash) fail(back, `${c.model} (${c.regNo}) is already booked for these dates (${clash}).`);
+    if (clash) bail(`${c.model} (${c.regNo}) is already booked for these dates (${clash}).`);
   }
-  if (driverId) { const clash = await driverClash(driverId, start, end); if (clash) fail(back, `This driver is already on booking ${clash} at that time.`); }
+  if (driverId) { const clash = await driverClash(driverId, start, end); if (clash) bail(`This driver is already on booking ${clash} at that time.`); }
 
   let customerId: string;
-  try { customerId = await upsertCustomer(fd); } catch (e) { fail(back, (e as Error).message); }
+  try { customerId = await upsertCustomer(fd); } catch (e) { bail((e as Error).message); }
 
   const guarantorCnicId = await saveUpload(fd.get('guarantorCnicImage'));
   const signatureId = (await saveDataUrl(str(fd.get('signature')), 'signature.png')) ?? (await saveUpload(fd.get('signatureFile')));
@@ -71,8 +105,8 @@ export async function createBooking(fd: FormData) {
   const autoTotal = rents.reduce((a, b) => a + b, 0) + driverAmount;
   const overrideReason = str(fd.get('overrideReason'));
   const total = postedTotal > 0 || overrideReason ? postedTotal : autoTotal;
-  if (total !== autoTotal && !overrideReason) fail(back, 'Please give a reason for changing the total.');
-  if (advance > total) fail(back, 'Advance cannot be more than the total.');
+  if (total !== autoTotal && !overrideReason) bail('Please give a reason for changing the total.');
+  if (advance > total) bail('Advance cannot be more than the total.');
   const groupId = cars.length > 1 ? newGroupId() : null;
   const status = start.getTime() <= Date.now() + 15 * 60000 ? 'IN_PROGRESS' : 'CONFIRMED';
   // The id shown on the form is used when it is well-formed; otherwise a fresh one is made on the server.
@@ -110,7 +144,7 @@ export async function createBooking(fd: FormData) {
   }
   return null;
   });
-  if (clashMsg) fail(back, clashMsg);
+  if (clashMsg) bail(clashMsg);
   await log('create', 'booking', ids.join(', '));
   revalidatePath('/admin', 'layout');
   redirect(fd.get('intent') === 'print' ? `/admin/bookings/${ids[0]}/print?auto=1` : `/admin/bookings/${ids[0]}`);
@@ -125,13 +159,13 @@ export async function updateBooking(fd: FormData) {
   if (b.status === 'COMPLETED' || b.status === 'CANCELLED') fail(`/admin/bookings/${id}`, 'Completed or cancelled bookings cannot be edited.');
   const vehicleId = int(fd.getAll('vehicleIds')[0]);
   const start = parsePk(String(fd.get('start'))), end = parsePk(String(fd.get('end')));
-  if (!vehicleId || !start || !end || end <= start) fail(back, 'Choose a vehicle and valid dates.');
+  if (!vehicleId || !start || !end || end <= start) bail('Choose a vehicle and valid dates.');
   const clash = await vehicleClash(vehicleId, start, end, id);
-  if (clash) fail(back, `That vehicle is already booked for these dates (${clash}).`);
+  if (clash) bail(`That vehicle is already booked for these dates (${clash}).`);
   const driverId = int(fd.get('driverId')) || null;
-  if (driverId) { const dc = await driverClash(driverId, start, end, id); if (dc) fail(back, `This driver is already on booking ${dc}.`); }
+  if (driverId) { const dc = await driverClash(driverId, start, end, id); if (dc) bail(`This driver is already on booking ${dc}.`); }
   const [car] = await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, vehicleId));
-  if (!car) fail(back, 'That vehicle no longer exists.');
+  if (!car) bail('That vehicle no longer exists.');
   const durationType = fd.get('durationType') === '12H' ? '12H' : 'DAY';
   const rent = rentFor(car, durationType, start, end).rent;
   const driverAmount = Math.max(0, int(fd.get('driverAmount')));
@@ -139,9 +173,9 @@ export async function updateBooking(fd: FormData) {
   const total = Math.max(0, int(fd.get('totalAmount'), auto));
   const overrideReason = str(fd.get('overrideReason'));
   // Every edit that moves the total away from the calculated rent needs its own reason.
-  if (total !== auto && !overrideReason) fail(back, 'Please give a reason for changing the total.');
+  if (total !== auto && !overrideReason) bail('Please give a reason for changing the total.');
   let customerId: string;
-  try { customerId = await upsertCustomer(fd); } catch (e) { fail(back, (e as Error).message); }
+  try { customerId = await upsertCustomer(fd); } catch (e) { bail((e as Error).message); }
   const guarantorCnicId = await saveUpload(fd.get('guarantorCnicImage'));
   const clashMsg = await withBookingLock(async (tx) => {
   const vc = await vehicleClash(vehicleId, start, end, id, tx);
@@ -156,7 +190,7 @@ export async function updateBooking(fd: FormData) {
   }).where(eq(schema.bookings.id, id));
   return null;
   });
-  if (clashMsg) fail(back, clashMsg);
+  if (clashMsg) bail(clashMsg);
   await log('update', 'booking', id, total !== b.totalAmount ? `total ${b.totalAmount} → ${total}${overrideReason ? ` (${overrideReason.slice(0, 200)})` : ''}` : undefined);
   revalidatePath('/admin', 'layout');
   redirect(`/admin/bookings/${id}`);
