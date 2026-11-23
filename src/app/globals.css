@@ -112,12 +112,9 @@ body { font-feature-settings: 'ss01', 'cv01'; -webkit-font-smoothing: antialiase
 .reveal-d4 { animation-delay: 0.2s; }
 .reveal-d5 { animation-delay: 0.25s; }
 
-/* Hero: slow drift on the active photo, progress fill on its tab */
+/* Hero: slow drift on the active photo */
 @keyframes drift { from { transform: scale(1.12) translate3d(1.5%, 0, 0); } to { transform: scale(1) translate3d(0, 0, 0); } }
 .hero-drift { animation: drift 9s cubic-bezier(0.25, 0.1, 0.25, 1) both; will-change: transform; }
-@keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.hero-progress { width: 100%; transform-origin: left; animation: progress linear both; }
-[dir='rtl'] .hero-progress { transform-origin: right; }
 /* Blur only where the copy sits: full on the start side, gone by the middle */
 .hero-frost {
   -webkit-mask-image: linear-gradient(to top, #000 0%, #000 45%, transparent 85%);

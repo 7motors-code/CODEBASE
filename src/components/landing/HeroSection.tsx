@@ -16,11 +16,7 @@ export function HeroSection({ totalVehicles, graceHours }: HeroSectionProps) {
         <HeroBackdrop />
         <div className="mx-auto flex min-h-[620px] max-w-7xl flex-col justify-center px-4 pb-36 pt-16 sm:px-6 md:min-h-[calc(100svh-4rem)] md:max-h-[920px] md:pb-44 lg:px-8">
           <div className="min-w-0 max-w-[40rem]">
-            <p className="reveal inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[13px] font-medium text-white/85 backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />
-              Islamabad · Rawalpindi · Lahore · Karachi
-            </p>
-            <h1 id="hero-heading" className="display mt-6 text-[44px] leading-[1.02] sm:text-[58px] lg:text-[72px]">
+            <h1 id="hero-heading" className="display text-[44px] leading-[1.02] sm:text-[58px] lg:text-[72px]">
               <span className="line-mask"><span>Rent by the day,</span></span>
               <span className="line-mask"><span style={{ animationDelay: '90ms' }}>or just the</span></span>
               <span className="line-mask"><span style={{ animationDelay: '180ms' }}><span className="ink-underline text-gold">12 hours</span> you need</span></span>
