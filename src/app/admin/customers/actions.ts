@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { requirePerm, log } from '@/lib/auth';
 import { saveUpload } from '@/lib/files';
-import { int, str } from '@/lib/format';
+import { int, str, money } from '@/lib/format';
 import { newCustomerId } from '@/lib/ids';
 
 export async function saveCustomer(fd: FormData) {
@@ -18,7 +18,7 @@ export async function saveCustomer(fd: FormData) {
   if (dup && dup.id !== id) redirect(`/admin/customers?${id ? `edit=${id}` : 'new=1'}&err=${encodeURIComponent(`Phone ${phone} already belongs to customer ${dup.id}.`)}`);
   const cnicFrontId = await saveUpload(fd.get('cnicFront'));
   const cnicBackId = await saveUpload(fd.get('cnicBack'));
-  const data = { name, phone, email: str(fd.get('email')), cnic: str(fd.get('cnic')), address: str(fd.get('address')), isCredit: fd.get('isCredit') === '1', creditLimit: int(fd.get('creditLimit')) };
+  const data = { name, phone, email: str(fd.get('email')), cnic: str(fd.get('cnic')), address: str(fd.get('address')), isCredit: fd.get('isCredit') === '1', creditLimit: money(fd.get('creditLimit')) };
   let cid = id;
   if (id) await db.update(schema.customers).set({ ...data, ...(cnicFrontId ? { cnicFrontId } : {}), ...(cnicBackId ? { cnicBackId } : {}) }).where(eq(schema.customers.id, id));
   else { cid = newCustomerId(); await db.insert(schema.customers).values({ id: cid, ...data, cnicFrontId, cnicBackId }); }

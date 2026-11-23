@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { requirePerm, log } from '@/lib/auth';
 import { saveUpload } from '@/lib/files';
-import { int, pkDay, str } from '@/lib/format';
+import { int, pkDay, str, PAY_METHODS, clipStr, isoDay, money } from '@/lib/format';
 import { newExpenseId } from '@/lib/ids';
 import { oneOf } from '@/lib/security';
 
@@ -16,7 +16,7 @@ export async function saveDriver(fd: FormData) {
   const data = {
     name: String(fd.get('name') ?? '').trim(), age: int(fd.get('age')) || null, cnic: str(fd.get('cnic')), licenseNo: str(fd.get('licenseNo')),
     licenseExpiry: str(fd.get('licenseExpiry')), phone: str(fd.get('phone')), paymentBasis: basis,
-    perDayFee: int(fd.get('perDayFee')), monthlySalary: basis === 'SALARY' ? int(fd.get('monthlySalary')) : 0, status: oneOf(fd.get('status'), ['ACTIVE', 'INACTIVE'] as const, 'ACTIVE'),
+    perDayFee: money(fd.get('perDayFee')), monthlySalary: basis === 'SALARY' ? money(fd.get('monthlySalary')) : 0, status: oneOf(fd.get('status'), ['ACTIVE', 'INACTIVE'] as const, 'ACTIVE'),
   };
   if (!data.name) redirect(`/admin/drivers?${id ? `edit=${id}` : 'new=1'}&err=Name+is+required`);
   const photoId = await saveUpload(fd.get('photo'));
@@ -29,15 +29,19 @@ export async function saveDriver(fd: FormData) {
 
 export async function payDriver(fd: FormData) {
   await requirePerm('drivers', 'edit');
+  // Paying a driver books an expense, so it also needs expense rights.
+  await requirePerm('expenses', 'create');
   const driverId = int(fd.get('driverId'));
-  const amount = int(fd.get('amount'));
+  const amount = money(fd.get('amount'));
   if (amount <= 0) redirect(`/admin/drivers?pay=${driverId}&err=Enter+an+amount`);
   const [d] = await db.select().from(schema.drivers).where(eq(schema.drivers.id, driverId));
   if (!d) redirect('/admin/drivers?err=Driver+not+found');
-  const date = String(fd.get('date') || pkDay());
+  const date = isoDay(fd.get('date'), pkDay());
+  const method = oneOf(fd.get('method'), PAY_METHODS, 'Cash');
+  const note = clipStr(fd.get('note'), 300);
   const expenseId = newExpenseId();
-  await db.insert(schema.expenses).values({ id: expenseId, date, category: d.paymentBasis === 'SALARY' ? 'Salaries' : 'Driver pay', description: `Driver payment: ${d.name}${fd.get('note') ? ` — ${fd.get('note')}` : ''}`, amount, method: String(fd.get('method') ?? 'Cash'), source: 'DRIVER' });
-  await db.insert(schema.driverPayments).values({ driverId, amount, date, method: String(fd.get('method') ?? 'Cash'), note: str(fd.get('note')), expenseId });
+  await db.insert(schema.expenses).values({ id: expenseId, date, category: d.paymentBasis === 'SALARY' ? 'Salaries' : 'Driver pay', description: `Driver payment: ${d.name}${note ? ` — ${note}` : ''}`, amount, method, source: 'DRIVER' });
+  await db.insert(schema.driverPayments).values({ driverId, amount, date, method, note, expenseId });
   await log('pay', 'driver', driverId, `PKR ${amount}`);
   revalidatePath('/admin', 'layout');
   redirect('/admin/drivers');

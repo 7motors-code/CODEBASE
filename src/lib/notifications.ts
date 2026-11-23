@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, inArray, lt, gte } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNotNull, lt, or } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { dayRange, pkDay, fmtDateTime, pkMonth, monthRange } from './format';
 
@@ -18,7 +18,8 @@ export async function getNotifications(): Promise<Note[]> {
 
   const [bks, maint, cars, drivers, invs] = await Promise.all([
     db.select().from(schema.bookings).where(inArray(schema.bookings.status, ['PENDING', 'IN_PROGRESS', 'CONFIRMED'])),
-    db.select().from(schema.maintenance).where(inArray(schema.maintenance.status, ['SCHEDULED', 'COMPLETED'])),
+    // Scheduled rows, plus only completed rows that set an oil-change target (the full history grows forever).
+    db.select().from(schema.maintenance).where(or(eq(schema.maintenance.status, 'SCHEDULED'), and(eq(schema.maintenance.status, 'COMPLETED'), isNotNull(schema.maintenance.nextOilChangeKm)))),
     db.select().from(schema.vehicles).where(eq(schema.vehicles.active, true)),
     db.select().from(schema.drivers).where(eq(schema.drivers.status, 'ACTIVE')),
     nearMonthEnd ? db.select({ id: schema.investors.id }).from(schema.investors) : Promise.resolve([]),

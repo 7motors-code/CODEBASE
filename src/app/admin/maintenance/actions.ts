@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { requirePerm, log } from '@/lib/auth';
-import { int, pkDay, str } from '@/lib/format';
+import { int, pkDay, str, isoDay, money } from '@/lib/format';
 import { newMaintenanceId } from '@/lib/ids';
 
 export async function saveMaintenance(fd: FormData) {
@@ -14,9 +14,9 @@ export async function saveMaintenance(fd: FormData) {
   const types = fd.getAll('types').map(String).filter(Boolean);
   const extra = str(fd.get('newType'));
   if (extra) { types.push(extra); await db.insert(schema.lookups).values({ kind: 'MAINT_TYPE', name: extra }).onConflictDoNothing(); }
-  const date = String(fd.get('date') || pkDay());
+  const date = isoDay(fd.get('date'), pkDay());
   if (!vehicleId || !types.length) redirect(`/admin/maintenance?${id ? `edit=${id}` : 'new=1'}&err=${encodeURIComponent('Choose a vehicle and at least one maintenance type.')}`);
-  const data = { vehicleId, types, date, cost: int(fd.get('cost')), meterReading: int(fd.get('meterReading')) || null, nextOilChangeKm: int(fd.get('nextOilChangeKm')) || null, notes: str(fd.get('notes')) };
+  const data = { vehicleId, types, date, cost: money(fd.get('cost')), meterReading: int(fd.get('meterReading')) || null, nextOilChangeKm: int(fd.get('nextOilChangeKm')) || null, notes: str(fd.get('notes')) };
   if (id) await db.update(schema.maintenance).set(data).where(eq(schema.maintenance.id, id));
   else {
     const status = fd.get('sendNow') ? 'IN_PROGRESS' : 'SCHEDULED';

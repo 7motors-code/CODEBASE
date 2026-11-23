@@ -10,7 +10,8 @@ import { passwordVersion } from './security';
 
 export const getUser = cache(async (): Promise<SessionUser | null> => {
   const s = await verify<SessionUser>(cookies().get(SESSION_COOKIE)?.value);
-  if (!s) return null;
+  // A customer-portal token is signed with the same key; never accept it as staff.
+  if (!s || typeof s.id !== 'number' || (s as { kind?: string }).kind === 'portal') return null;
   const [u] = await db.select().from(schema.users).where(eq(schema.users.id, s.id));
   if (!u || u.status !== 'ACTIVE') return null;
   // Password changed since this session was issued → session is no longer valid

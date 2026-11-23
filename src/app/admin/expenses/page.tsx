@@ -39,7 +39,7 @@ export default async function ExpensesPage({ searchParams: sp }: { searchParams:
         <form method="get" className="flex items-center gap-1"><CalendarRange size={16} className="text-muted" /><input type="date" name="from" defaultValue={sp.from} className="input py-1.5" /><span className="text-muted">–</span><input type="date" name="to" defaultValue={sp.to} className="input py-1.5" /><button className="btn-ghost btn-sm">Date range</button></form>
         {canCreate && <Link href={href('/admin/expenses', base, { new: 1 })} className="btn-primary"><Plus size={16} /> Add expense</Link>}
       </PageHeader>
-      {sp.err && !sp.new && !sp.edit && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
+      {sp.err && !sp.new && !sp.edit && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi featured label="Total expenses" value={pkr(total)} tone="red" hint={<span className={vsAvg > 0 ? 'text-bad' : 'text-ok'}>This month {vsAvg >= 0 ? '+' : ''}{vsAvg}% vs 5-month average</span>} />
         <Kpi label="Biggest category" value={catList[0]?.[0] ?? '—'} tone="cyan" hint={catList[0] ? `${pkr(catList[0][1])} · high impact on monthly cost` : undefined} />
@@ -47,7 +47,7 @@ export default async function ExpensesPage({ searchParams: sp }: { searchParams:
         <Kpi label="Maintenance (separate)" value={pkr(maint[0].s)} tone="yellow" hint={<Link href="/admin/maintenance" className="link">From Maintenance module</Link>} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Monthly expenses"><div className="p-3"><LinesChart data={series} lines={[{ key: 'expenses', name: 'Expenses', color: '#f43f5e' }]} height={240} /></div></Card>
+        <Card title="Monthly expenses"><div className="p-3"><LinesChart title="Monthly expenses" data={series} lines={[{ key: 'expenses', name: 'Expenses', color: '#f43f5e' }]} height={240} /></div></Card>
         <Card title="Expense categories">
           <div className="grid items-center gap-2 p-3 sm:grid-cols-2"><Donut data={catList.map(([name, value], i) => ({ name, value, color: PALETTE[i % PALETTE.length] }))} height={220} />
             <div className="space-y-1 text-sm">{catList.length === 0 && <p className="text-muted">No expenses yet</p>}{catList.map(([n, v], i) => <div key={n} className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PALETTE[i % PALETTE.length] }} />{n}<span className="ms-auto font-medium">{pkr(v)}</span></div>)}</div></div>
@@ -62,9 +62,9 @@ export default async function ExpensesPage({ searchParams: sp }: { searchParams:
           <tbody>
             {pg.slice.length === 0 && <Empty cols={7} />}
             {pg.slice.map((e) => (
-              <tr key={e.id}><td>{fmtDate(e.date)}</td><td className="font-mono text-xs">{e.id}</td><td>{e.description ?? '—'}{e.receiptId && <a href={`/api/files/${e.receiptId}`} target="_blank" className="ms-2 inline-flex text-navy"><Paperclip size={13} /></a>}</td><td><span className="badge bg-panel2 text-ink">{e.category}</span></td><td>{e.method}</td><td className="font-medium text-bad">{pkr(e.amount)}</td>
-                <td><div className="flex justify-end gap-1">{canEdit && e.source === 'MANUAL' && <Link className="btn-ghost btn-sm" href={href('/admin/expenses', base, { edit: e.id })}><Pencil size={13} /></Link>}
-                  {canDelete && e.source === 'MANUAL' && <ConfirmForm action={deleteExpense} hidden={{ id: e.id }} message="Delete this expense?" className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}
+              <tr key={e.id}><td>{fmtDate(e.date)}</td><td className="font-mono text-xs">{e.id}</td><td>{e.description ?? '—'}{e.receiptId && <a href={`/api/files/${e.receiptId}`} target="_blank" rel="noopener noreferrer" aria-label="Open receipt (opens in a new tab)" className="ms-2 inline-flex text-navy"><Paperclip size={13} aria-hidden /></a>}</td><td><span className="badge bg-panel2 text-ink">{e.category}</span></td><td>{e.method}</td><td className="font-medium text-bad">{pkr(e.amount)}</td>
+                <td><div className="flex justify-end gap-1">{canEdit && e.source === 'MANUAL' && <Link className="btn-ghost btn-sm" href={href('/admin/expenses', base, { edit: e.id })} aria-label={`Edit expense ${e.id}`}><Pencil size={13} aria-hidden /></Link>}
+                  {canDelete && e.source === 'MANUAL' && <ConfirmForm action={deleteExpense} hidden={{ id: e.id }} message="Delete this expense?" className="btn-ghost btn-sm text-bad" ariaLabel={`Delete expense ${e.id}`}><Trash2 size={13} /></ConfirmForm>}
                   {e.source !== 'MANUAL' && <span className="text-[11px] text-muted">{e.source === 'DRIVER' ? 'driver pay' : 'investor payout'}</span>}</div></td></tr>))}
           </tbody></table></TableWrap>
         <Pagination {...pg} makeHref={(p) => href('/admin/expenses', base, { page: p })} />
@@ -73,7 +73,7 @@ export default async function ExpensesPage({ searchParams: sp }: { searchParams:
         <Modal title={editing ? `Edit ${editing.id}` : 'Add expense'} closeHref={href('/admin/expenses', base)}>
           <form action={saveExpense} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Date" required><input type="date" name="date" required defaultValue={editing?.date ?? pkDay()} className="input" /></Field>
               <Field label="Category" required><input name="category" list="ecats" required defaultValue={editing?.category} placeholder="Pick or type new" className="input" /><datalist id="ecats">{cats.map((c) => <option key={c.id} value={c.name} />)}</datalist></Field>

@@ -34,8 +34,8 @@ export default async function DamagePage({ searchParams: sp }: { searchParams: {
   return (
     <div className="space-y-6">
       <PageHeader title="Damage" subtitle="Log damage caused by a customer, attach evidence and bill it" />
-      {sp.saved && <p className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">Damage report {sp.saved} saved and added to the customer&apos;s pending balance.</p>}
-      {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
+      {sp.saved && <p role="status" className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">Damage report {sp.saved} saved and added to the customer&apos;s pending balance.</p>}
+      {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
       {canCreate && (
         <Card title={<span className="flex items-center gap-2"><TriangleAlert size={18} className="text-navy" /> Log new incident</span>}>
           <div className="p-5">
@@ -70,11 +70,11 @@ export default async function DamagePage({ searchParams: sp }: { searchParams: {
               <tr key={d.id}><td>{fmtDate(d.createdAt)}</td><td>{fmtTime(d.createdAt)}</td><td>{v?.model}<span className="block text-xs text-muted">{v?.regNo}</span></td><td>{c}</td><td>{d.damageType}</td>
                 <td><Badge status={d.status} /></td><td className="font-medium">{pkr(d.estimatedCost)}</td><td className="text-ok">{pkr(paid.get(d.id) ?? 0)}</td>
                 <td><div className="flex flex-wrap justify-end gap-1">
-                  <Link className="btn-ghost btn-sm" href={`/admin/damage?view=${d.id}`}><Eye size={13} /></Link>
-                  {canEdit && <Link className="btn-ghost btn-sm" href={`/admin/damage?edit=${d.id}`}><Pencil size={13} /></Link>}
+                  <Link className="btn-ghost btn-sm" href={`/admin/damage?view=${d.id}`} aria-label={`View damage report ${d.id}`}><Eye size={13} aria-hidden /></Link>
+                  {canEdit && <Link className="btn-ghost btn-sm" href={`/admin/damage?edit=${d.id}`} aria-label={`Edit damage report ${d.id}`}><Pencil size={13} aria-hidden /></Link>}
                   {canPay && d.status === 'PENDING' && <Link className="btn-primary btn-sm" href={`/admin/damage?pay=${d.id}`}>Collect</Link>}
                   {canEdit && d.status === 'PENDING' && <ConfirmForm action={setDamageStatus} hidden={{ id: d.id, status: 'WAIVED' }} message="Waive this damage charge? The customer will not pay it.">Waive</ConfirmForm>}
-                  {canDelete && <ConfirmForm action={deleteDamage} hidden={{ id: d.id }} message="Delete this damage report?" className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}
+                  {canDelete && <ConfirmForm action={deleteDamage} hidden={{ id: d.id }} message="Delete this damage report?" className="btn-ghost btn-sm text-bad" ariaLabel={`Delete damage report ${d.id}`}><Trash2 size={13} /></ConfirmForm>}
                 </div></td></tr>))}
           </tbody></table></TableWrap>
         <Pagination {...pg} makeHref={(p) => href('/admin/damage', { q: sp.q }, { page: p })} />

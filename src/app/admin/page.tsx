@@ -58,17 +58,19 @@ export default async function Dashboard({ searchParams }: { searchParams: { day?
   const custNow = custStats?.now ?? 0;
   const custPrev = custStats?.prev ?? 0;
 
-  const nowFleet = await fleetStatus();
+  const day = searchParams.day && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.day) && !isNaN(+new Date(`${searchParams.day}T12:00:00+05:00`)) ? searchParams.day : pkDay();
+  const [nowFleet, otherDayFleet, recent] = await Promise.all([
+    fleetStatus(),
+    day === pkDay() ? null : fleetStatus(day),
+    db.select({ b: schema.bookings, c: schema.customers.name, v: schema.vehicles.model, reg: schema.vehicles.regNo })
+      .from(schema.bookings).leftJoin(schema.customers, sql`${schema.customers.id} = ${schema.bookings.customerId}`)
+      .leftJoin(schema.vehicles, sql`${schema.vehicles.id} = ${schema.bookings.vehicleId}`).orderBy(desc(schema.bookings.createdAt)).limit(8),
+  ]);
   const counts = (k: string) => nowFleet.filter((v) => v.vstatus === k).length;
-  const day = searchParams.day && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.day) ? searchParams.day : pkDay();
-  const dayFleet = day === pkDay() ? nowFleet : await fleetStatus(day);
+  const dayFleet = otherDayFleet ?? nowFleet;
   const q = (searchParams.q ?? '').toLowerCase();
   const list = dayFleet.filter((v) => !q || `${v.model} ${v.regNo}`.toLowerCase().includes(q));
   const dueBack = dayFleet.filter((v) => v.vstatus === 'RETURN');
-
-  const recent = await db.select({ b: schema.bookings, c: schema.customers.name, v: schema.vehicles.model, reg: schema.vehicles.regNo })
-    .from(schema.bookings).leftJoin(schema.customers, sql`${schema.customers.id} = ${schema.bookings.customerId}`)
-    .leftJoin(schema.vehicles, sql`${schema.vehicles.id} = ${schema.bookings.vehicleId}`).orderBy(desc(schema.bookings.createdAt)).limit(8);
 
   const pct = (a: number, b: number) => (b === 0 ? (a > 0 ? 100 : 0) : Math.round(((a - b) / b) * 100));
   const Trend = ({ a, b }: { a: number; b: number }) => {
@@ -77,7 +79,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { day?
   };
 
   // calendar for the selected month
-  const calMonth = searchParams.cal ?? day.slice(0, 7);
+  const calMonth = searchParams.cal && /^\d{4}-(0[1-9]|1[0-2])$/.test(searchParams.cal) ? searchParams.cal : day.slice(0, 7);
   const first = new Date(`${calMonth}-01T00:00:00+05:00`);
   const firstWeekday = new Date(`${calMonth}-01T12:00:00+05:00`).getUTCDay();
   const daysIn = new Date(Number(calMonth.slice(0, 4)), Number(calMonth.slice(5)), 0).getDate();
@@ -104,7 +106,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { day?
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title={t('revenueOverview')} className="lg:col-span-2" actions={<span className="font-mono text-sm tabular-nums text-ink2">{pkr(yearTotal)}</span>}>
-          <div className="px-3 pb-2 pt-4"><LinesChart data={series} lines={[{ key: 'revenue', name: 'Revenue', color: '#0B2A5B' }]} /></div>
+          <div className="px-3 pb-2 pt-4"><LinesChart title="Revenue by month" data={series} lines={[{ key: 'revenue', name: 'Revenue', color: '#0B2A5B' }]} /></div>
           <p className="px-5 pb-4 text-[13px] text-muted">{monthLabel(months[0])} – {monthLabel(month)}, cancelled bookings excluded</p>
         </Card>
         <Card title={t('fleetStatus')} actions={<span className="font-mono text-sm tabular-nums text-ink2">{fleetTotal} cars</span>}>
@@ -145,7 +147,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { day?
                   const d = `${calMonth}-${String(i + 1).padStart(2, '0')}`;
                   const on = d === day, today = d === pkDay();
                   return (
-                    <Link key={d} href={`/admin?day=${d}&cal=${calMonth}`} aria-current={on ? 'date' : undefined}
+                    <Link key={d} href={`/admin?day=${d}&cal=${calMonth}`} aria-label={fmtDate(d)} aria-current={on ? 'date' : undefined}
                       className={`flex h-8 items-center justify-center rounded-md font-mono tabular-nums transition-colors duration-150 ${on ? 'bg-navy text-white' : today ? 'font-medium text-navy ring-1 ring-inset ring-navy/30' : 'text-ink2 hover:bg-panel2'}`}>
                       {i + 1}
                     </Link>
@@ -161,8 +163,8 @@ export default async function Dashboard({ searchParams }: { searchParams: { day?
           </div>
           <div className="min-w-0">
             <form className="mb-4 flex flex-wrap gap-2" method="get">
-              <input name="q" type="search" defaultValue={searchParams.q} placeholder="Vehicle or registration" className="input max-w-xs flex-1" />
-              <input type="date" name="day" defaultValue={day} className="input w-44 font-mono" />
+              <input name="q" type="search" defaultValue={searchParams.q} placeholder="Vehicle or registration" aria-label="Search vehicle or registration" className="input max-w-xs flex-1" />
+              <input type="date" name="day" defaultValue={day} aria-label="Show fleet for date" className="input w-44 font-mono" />
               <button className="btn-ghost">Show</button>
             </form>
             <div className="overflow-hidden rounded-xl border border-line">

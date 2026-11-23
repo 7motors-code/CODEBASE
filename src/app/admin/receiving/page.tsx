@@ -30,8 +30,8 @@ export default async function Receiving({ searchParams: sp }: { searchParams: { 
   return (
     <div className="space-y-6">
       <PageHeader title="Returns" subtitle="Check in a returned car against its booking" />
-      {sp.done && <p className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">Booking {sp.done} received and completed. The car is available again. <Link className="link" href={`/admin/bookings/${sp.done}`}>Open booking</Link></p>}
-      {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
+      {sp.done && <p role="status" className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">Booking {sp.done} received and completed. The car is available again. <Link className="link" href={`/admin/bookings/${sp.done}`}>Open booking</Link></p>}
+      {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
       <Card title="Search booking">
         <form className="flex gap-2 p-4" method="get">
           <input name="q" defaultValue={sp.q} placeholder="Booking ID, phone, CNIC, car name or plate no" className="input" autoFocus />
@@ -93,7 +93,7 @@ export default async function Receiving({ searchParams: sp }: { searchParams: { 
             {pg.slice.map(({ r, b, c, v }) => (
               <tr key={r.id}><td><Link className="link" href={`/admin/bookings/${r.bookingId}`}>{r.bookingId}</Link></td><td>{c}</td><td>{v?.model} <span className="text-muted">({v?.regNo})</span></td>
                 <td>{fmtDateTime(r.receivedAt)}</td><td>{r.meterIn?.toLocaleString() ?? '—'}</td><td>{pkr(r.fine)}</td><td><Badge status={b?.status ?? 'COMPLETED'} /></td>
-                <td><div className="flex justify-end gap-1"><Link className="btn-ghost btn-sm" href={`/admin/bookings/${r.bookingId}`}><Eye size={14} /></Link><Link className="btn-ghost btn-sm" href={`/admin/bookings/${r.bookingId}/print`}><Printer size={14} /></Link></div></td></tr>))}
+                <td><div className="flex justify-end gap-1"><Link className="btn-ghost btn-sm" href={`/admin/bookings/${r.bookingId}`} aria-label={`View booking ${r.bookingId}`}><Eye size={14} aria-hidden /></Link><Link className="btn-ghost btn-sm" href={`/admin/bookings/${r.bookingId}/print`} aria-label={`Print agreement for booking ${r.bookingId}`}><Printer size={14} aria-hidden /></Link></div></td></tr>))}
           </tbody></table></TableWrap>
         <Pagination {...pg} makeHref={(p) => `/admin/receiving?page=${p}`} />
       </Card>

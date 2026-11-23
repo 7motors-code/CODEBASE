@@ -1,11 +1,11 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { requirePerm, log } from '@/lib/auth';
 import { saveDataUrl, saveUpload } from '@/lib/files';
-import { int, parsePk, str } from '@/lib/format';
+import { int, money, parsePk, str } from '@/lib/format';
 import { newBookingId, newCustomerId, newGroupId, newPaymentId } from '@/lib/ids';
 import { driverClash, rentFor, vehicleClash, bookingBalances, withBookingLock } from '@/lib/calc';
 import { oneOf, safeBack } from '@/lib/security';
@@ -84,12 +84,17 @@ export async function createBooking(fd: FormData) {
   // Re-check inside the lock: another booking may have been saved since the form was opened.
   for (const c of cars) { const cl = await vehicleClash(c.id, start, end, undefined, tx); if (cl) return `${c.model} (${c.regNo}) is already booked for these dates (${cl}).`; }
   if (driverId) { const cl = await driverClash(driverId, start, end, undefined, tx); if (cl) return `This driver is already on booking ${cl} at that time.`; }
+  let allocated = 0;
   for (let i = 0; i < cars.length; i++) {
     const c = cars[i];
     let id = i === 0 ? firstId : `${firstId.slice(0, -2)}${String(i).padStart(2, '0')}`;
     const [exists] = await tx.select({ id: schema.bookings.id }).from(schema.bookings).where(eq(schema.bookings.id, id));
     if (exists) id = newBookingId(); // double-submit or id collision
-    const share = cars.length === 1 ? total : Math.round(((total - driverAmount) * rents[i]) / rentSum) + (i === 0 ? driverAmount : 0);
+    // Round each car's share, but give the last car the remainder so the group adds up to the exact total.
+    const share = cars.length === 1 ? total
+      : i === cars.length - 1 ? total - allocated
+      : Math.round(((total - driverAmount) * rents[i]) / rentSum) + (i === 0 ? driverAmount : 0);
+    allocated += share;
     await tx.insert(schema.bookings).values({
       id, groupId, customerId, vehicleId: c.id, driverId: i === 0 ? driverId : null, locationId: int(fd.get('locationId')) || null,
       bookingType: str(fd.get('bookingType')), durationType, shift: durationType === '12H' ? str(fd.get('shift')) : null,
@@ -133,7 +138,8 @@ export async function updateBooking(fd: FormData) {
   const auto = rent + driverAmount;
   const total = Math.max(0, int(fd.get('totalAmount'), auto));
   const overrideReason = str(fd.get('overrideReason'));
-  if (total !== auto && !overrideReason && !b.overrideReason) fail(back, 'Please give a reason for changing the total.');
+  // Every edit that moves the total away from the calculated rent needs its own reason.
+  if (total !== auto && !overrideReason) fail(back, 'Please give a reason for changing the total.');
   let customerId: string;
   try { customerId = await upsertCustomer(fd); } catch (e) { fail(back, (e as Error).message); }
   const guarantorCnicId = await saveUpload(fd.get('guarantorCnicImage'));
@@ -151,7 +157,7 @@ export async function updateBooking(fd: FormData) {
   return null;
   });
   if (clashMsg) fail(back, clashMsg);
-  await log('update', 'booking', id);
+  await log('update', 'booking', id, total !== b.totalAmount ? `total ${b.totalAmount} → ${total}${overrideReason ? ` (${overrideReason.slice(0, 200)})` : ''}` : undefined);
   revalidatePath('/admin', 'layout');
   redirect(`/admin/bookings/${id}`);
 }
@@ -180,7 +186,7 @@ export async function addPayment(fd: FormData) {
   const bookingId = str(fd.get('bookingId'));
   const damageId = str(fd.get('damageId'));
   const back = safeBack(fd.get('back'), '/admin/payments');
-  const amount = int(fd.get('amount'));
+  const amount = money(fd.get('amount'));
   if (amount <= 0) fail(back, 'Enter an amount greater than zero.');
   if (!bookingId && !damageId) fail(back, 'Choose a booking or damage report.');
   let customerId: string | null = null;
@@ -189,6 +195,9 @@ export async function addPayment(fd: FormData) {
     const [d] = await db.select().from(schema.damages).where(eq(schema.damages.id, damageId));
     if (!d) fail(back, 'Damage report not found.');
     customerId = d.customerId; type = 'DAMAGE';
+    const [{ paid }] = await db.select({ paid: sql<number>`coalesce(sum(${schema.payments.amount}), 0)::int` }).from(schema.payments).where(eq(schema.payments.damageId, damageId));
+    const owed = Math.max(0, d.estimatedCost - paid);
+    if (amount > owed) fail(back, `Amount is more than what is still owed on this damage (PKR ${owed.toLocaleString()}).`);
   } else if (bookingId) {
     const [b] = await db.select().from(schema.bookings).where(eq(schema.bookings.id, bookingId));
     if (!b) fail(back, 'Booking not found.');

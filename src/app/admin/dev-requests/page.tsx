@@ -46,7 +46,7 @@ export default async function DevRequests({ searchParams: sp }: { searchParams: 
       {sp.new && (
         <Modal title="New dev request" closeHref="/admin/dev-requests">
           <form action={createRequest} className="space-y-4">
-            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <Field label="Title" required><input name="title" required className="input" placeholder="e.g. Add WhatsApp reminder for returns" /></Field>
             <Field label="Description"><textarea name="description" rows={4} className="input" /></Field>
             <Field label="Priority"><select name="priority" defaultValue="MEDIUM" className="input"><option>LOW</option><option>MEDIUM</option><option>HIGH</option></select></Field>

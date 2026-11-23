@@ -43,9 +43,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen bg-bg">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-[80] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-navy-dark focus:shadow-float">Skip to main content</a>
       <Sidebar allowed={allowed} labels={labels} business={business} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print sticky top-0 z-30 flex h-16 items-center justify-end gap-1 bg-navy-dark pe-4 ps-16 text-white shadow-[0_1px_0_rgba(255,255,255,0.08)] md:pe-6 lg:ps-6">
+        <header data-surface="dark" className="no-print sticky top-0 z-30 flex h-16 items-center justify-end gap-1 bg-navy-dark pe-4 ps-16 text-white shadow-[0_1px_0_rgba(255,255,255,0.08)] md:pe-6 lg:ps-6">
           <CommandPalette items={palette} />
           <details data-dropdown className="group relative">
             <summary
@@ -59,12 +60,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 </span>
               )}
             </summary>
-            <div className="absolute end-0 mt-2 max-h-[70vh] w-[22rem] overflow-y-auto rounded-xl border border-line bg-panel p-1.5 text-ink shadow-modal">
+            <div data-surface="light" className="fixed inset-x-2 top-16 mt-1 max-h-[70vh] overflow-y-auto rounded-xl sm:absolute sm:inset-x-auto sm:end-0 sm:top-auto sm:mt-2 sm:w-[22rem] border border-line bg-panel p-1.5 text-ink shadow-modal">
               <p className="px-3 pb-1 pt-2 text-[13px] font-medium text-ink">{labels.notifications}</p>
               {notes.length === 0 && <p className="px-3 py-6 text-center text-sm text-muted">Nothing needs attention</p>}
               {notes.map((n) => (
                 <Link key={n.key} href={n.href} className="flex gap-3 rounded-lg px-3 py-2.5 transition-colors duration-150 hover:bg-panel2">
-                  <span className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${TONE[n.tone]}`} />
+                  <span className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${TONE[n.tone]}`} aria-hidden />
                   <span className="min-w-0">
                     <span className="block text-sm text-ink">{n.title}</span>
                     <span className="block text-[13px] text-muted">{n.detail}</span>
@@ -77,12 +78,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <form action={toggleLang}>
             <button className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-white/75 transition-colors duration-150 hover:bg-white/10 hover:text-white" title="English / اردو">
               <Languages {...ICON} className="text-white/50" />
-              {lang === 'ur' ? 'English' : 'اردو'}
+              {lang === 'ur' ? <span lang="en">English</span> : <span lang="ur">اردو</span>}
             </button>
           </form>
 
           <div className="ms-2 flex items-center gap-2.5 border-s border-white/15 ps-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold text-[13px] font-bold text-navy-dark">
+            <span aria-hidden className="flex h-8 w-8 items-center justify-center rounded-full bg-gold text-[13px] font-bold text-navy-dark">
               {user.name.charAt(0).toUpperCase()}
             </span>
             <span className="hidden leading-tight sm:block">
@@ -96,7 +97,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </form>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main id="main" tabIndex={-1} className="mx-auto w-full outline-none max-w-[1600px] flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
       <VoiceButton lang={lang} />
       <UploadCompressor />

@@ -10,7 +10,7 @@ export async function saveLocation(fd: FormData) {
   const id = int(fd.get('id'));
   await requirePerm('locations', id ? 'edit' : 'create');
   const name = String(fd.get('name') ?? '').trim();
-  if (!name) redirect('/admin/locations?err=Name+is+required');
+  if (!name) redirect(`/admin/locations?${id ? `edit=${id}` : 'new=1'}&err=Name+is+required`);
   const data = { name, city: str(fd.get('city')), address: str(fd.get('address')), active: fd.get('active') !== '0' };
   if (id) await db.update(schema.locations).set(data).where(eq(schema.locations.id, id));
   else await db.insert(schema.locations).values(data);

@@ -19,7 +19,7 @@ export default async function InvestorsPage({ searchParams: sp }: { searchParams
   const editing = sp.edit ? investors.find((i) => i.id === Number(sp.edit)) : undefined;
   const defShare = await getSetting('default_investor_share', '50');
   const month = sp.month && /^\d{4}-\d{2}$/.test(sp.month) ? sp.month : pkMonth();
-  const s = sp.view ? await investorSummary(Number(sp.view), month) : null;
+  const s = sp.view && Number.isInteger(Number(sp.view)) ? await investorSummary(Number(sp.view), month) : null;
   const assigned = cars.filter((c) => c.investorId).length;
   return (
     <div className="space-y-6">
@@ -41,9 +41,9 @@ export default async function InvestorsPage({ searchParams: sp }: { searchParams
               <tr key={i.id}><td><span className="flex items-center gap-2 font-medium"><Avatar name={i.name} />{i.name}</span></td><td>{i.phone ?? '—'}</td><td className="text-xs">{i.cnic ?? '—'}</td><td>{i.address ?? '—'}</td><td>{Number(i.sharePercent)}%</td>
                 <td><div className="flex flex-wrap gap-1">{cars.filter((c) => c.investorId === i.id).map((c) => <span key={c.id} className="badge bg-panel2 text-ink">{c.model} ({c.regNo})</span>)}</div></td>
                 <td><div className="flex justify-end gap-1">
-                  <Link className="btn-ghost btn-sm" href={`/admin/investors?view=${i.id}`}><Eye size={13} /></Link>
-                  {canEdit && <Link className="btn-ghost btn-sm" href={`/admin/investors?edit=${i.id}`}><Pencil size={13} /></Link>}
-                  {canDelete && <ConfirmForm action={deleteInvestor} hidden={{ id: i.id }} message={`Delete investor ${i.name}? Their cars become company owned.`} className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}
+                  <Link className="btn-ghost btn-sm" href={`/admin/investors?view=${i.id}`} aria-label={`View investor ${i.name}`}><Eye size={13} aria-hidden /></Link>
+                  {canEdit && <Link className="btn-ghost btn-sm" href={`/admin/investors?edit=${i.id}`} aria-label={`Edit investor ${i.name}`}><Pencil size={13} aria-hidden /></Link>}
+                  {canDelete && <ConfirmForm action={deleteInvestor} hidden={{ id: i.id }} message={`Delete investor ${i.name}? Their cars become company owned.`} className="btn-ghost btn-sm text-bad" ariaLabel={`Delete investor ${i.name}`}><Trash2 size={13} /></ConfirmForm>}
                 </div></td></tr>))}
           </tbody></table></TableWrap>
       </Card>
@@ -52,7 +52,7 @@ export default async function InvestorsPage({ searchParams: sp }: { searchParams
         <Modal title={editing ? `Edit ${editing.name}` : 'Add investor'} closeHref="/admin/investors">
           <form action={saveInvestor} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name" required><input name="name" required defaultValue={editing?.name} className="input" /></Field>
               <Field label="Phone"><input name="phone" defaultValue={editing?.phone ?? ''} className="input" /></Field>
@@ -111,7 +111,7 @@ export default async function InvestorsPage({ searchParams: sp }: { searchParams
               <Field label="Paid by"><select name="method" className="input">{['Bank transfer', 'Cash', 'JazzCash', 'Easypaisa'].map((m) => <option key={m}>{m}</option>)}</select></Field>
               <Submit><CheckCircle2 size={16} /> Mark {monthLabel(month)} as paid ({pkr(s.payable)})</Submit>
             </form>)}
-          {s.payout && <p className="mt-4 rounded-xl bg-ok-soft p-3 text-sm text-ok">Payout of {pkr(s.payout.payable)} recorded on {fmtDateTime(s.payout.paidAt)} and added to Expenses.</p>}
+          {s.payout && <p role="status" className="mt-4 rounded-xl bg-ok-soft p-3 text-sm text-ok">Payout of {pkr(s.payout.payable)} recorded on {fmtDateTime(s.payout.paidAt)} and added to Expenses.</p>}
         </Modal>)}
     </div>
   );

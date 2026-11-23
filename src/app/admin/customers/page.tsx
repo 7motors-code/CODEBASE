@@ -25,7 +25,7 @@ export default async function CustomersPage({ searchParams: sp }: { searchParams
       <PageHeader title="Customers" subtitle="Customer profiles, history and credit (monthly account) customers">
         {canCreate && <Link href={href('/admin/customers', base, { new: 1 })} className="btn-primary"><Plus size={16} /> Credit Customer</Link>}
       </PageHeader>
-      {sp.err && !sp.new && !sp.edit && <p className="mb-4 rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
+      {sp.err && !sp.new && !sp.edit && <p role="alert" className="mb-4 rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <Card>
           <form className="no-print flex flex-wrap gap-2 p-4" method="get">
@@ -52,7 +52,7 @@ export default async function CustomersPage({ searchParams: sp }: { searchParams
         <Modal title={editing ? `Edit ${editing.name}` : 'Add customer'} closeHref={href('/admin/customers', base, editing ? { id: editing.id } : {})}>
           <form action={saveCustomer} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name" required><input name="name" required defaultValue={editing?.name} className="input" /></Field>
               <Field label="Phone" required><input name="phone" required defaultValue={editing?.phone} className="input" /></Field>
@@ -82,9 +82,10 @@ async function Profile({ c, tab, base, canEdit, canDelete, statement }: { c: typ
     ...pays.map((p) => ({ at: p.paidAt, t: `Payment ${pkr(p.amount)}`, d: `${p.type.toLowerCase()} · ${p.method}${p.bookingId ? ` · ${p.bookingId}` : ''}`, s: 'PAID', href: `/admin/payments/receipt/${p.id}` })),
     ...dmgs.map((x) => ({ at: x.createdAt, t: `Damage: ${x.damageType}`, d: pkr(x.estimatedCost), s: x.status, href: `/admin/damage?view=${x.id}` })),
   ].sort((a, b) => +new Date(b.at) - +new Date(a.at));
-  const month = statement ?? pkMonth();
+  const validStatement = statement && /^\d{4}-(0[1-9]|1[0-2])$/.test(statement) ? statement : undefined;
+  const month = validStatement ?? pkMonth();
   const r = monthRange(month);
-  const stmtBookings = statement ? await db.select({ b: schema.bookings, v: schema.vehicles }).from(schema.bookings).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.bookings.vehicleId))
+  const stmtBookings = validStatement ? await db.select({ b: schema.bookings, v: schema.vehicles }).from(schema.bookings).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.bookings.vehicleId))
     .where(and(eq(schema.bookings.customerId, c.id), gte(schema.bookings.startAt, r.start), lt(schema.bookings.startAt, r.end))) : [];
   const stmtBal = await bookingBalances(stmtBookings.map((x) => x.b.id));
   const dPaid = await damagePaid(dmgs.map((d) => d.id));
@@ -92,7 +93,7 @@ async function Profile({ c, tab, base, canEdit, canDelete, statement }: { c: typ
   return (
     <div className="card sticky top-20 overflow-hidden">
       <div className="relative border-b border-line bg-panel2 p-6 text-ink">
-        <div className="absolute end-3 top-3 flex gap-1">{canEdit && <Link href={link({ edit: c.id, id: undefined })} className="rounded-lg border border-line bg-panel p-1.5 hover:bg-panel2"><Pencil size={14} /></Link>}</div>
+        <div className="absolute end-3 top-3 flex gap-1">{canEdit && <Link href={link({ edit: c.id, id: undefined })} className="rounded-lg border border-line bg-panel p-1.5 hover:bg-panel2" aria-label={`Edit customer ${c.name}`}><Pencil size={14} aria-hidden /></Link>}</div>
         <span className="flex h-16 w-16 items-center justify-center rounded-full border border-line bg-panel text-2xl font-medium text-ink">{c.name.charAt(0)}</span>
         <p className="mt-3 text-lg font-medium text-ink">{c.name}</p>
         <div className="mt-1 flex items-center gap-2 text-xs"><Badge status={c.status} /><span className="text-muted">ID: {c.id}</span>{c.isCredit && <span className="badge bg-navy-soft text-navy font-medium">Credit</span>}</div>
@@ -126,7 +127,7 @@ async function Profile({ c, tab, base, canEdit, canDelete, statement }: { c: typ
           {events.length === 0 && <p className="text-sm text-muted">No activity yet.</p>}
           {events.map((e, i) => <Link key={i} href={e.href} className="block rounded-xl bg-panel2 p-3 text-sm hover:ring-1 hover:ring-navy/20"><div className="flex justify-between gap-2"><span className="font-medium">{e.t}</span><Badge status={e.s} /></div><p className="text-xs text-muted">{e.d}</p><p className="text-[11px] text-muted">{fmtDateTime(e.at)}</p></Link>)}
         </div>)}
-      {statement && (
+      {validStatement && (
         <Modal title={`Statement · ${c.name} · ${monthLabel(month)}`} closeHref={link({ statement: undefined })} wide>
           <div className="mb-3 flex justify-end"><PrintButton label="Print statement" /></div>
           <div className="print-area rounded-xl bg-white p-6 text-slate-900">

@@ -28,7 +28,7 @@ export default async function CarsPage({ searchParams: sp }: { searchParams: SP 
     (!sp.minRate || v.rateDay >= Number(sp.minRate)) && (!sp.maxRate || v.rateDay <= Number(sp.maxRate)));
   const pg = paginate(rows, sp.page);
   const base = { q: sp.q, status: sp.status, category: sp.category, color: sp.color, minRate: sp.minRate, maxRate: sp.maxRate };
-  const editing = sp.edit ? fleet.find((v) => v.id === Number(sp.edit)) ?? (await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, Number(sp.edit))))[0] : null;
+  const editing = sp.edit ? fleet.find((v) => v.id === Number(sp.edit)) ?? (Number.isInteger(Number(sp.edit)) ? (await db.select().from(schema.vehicles).where(eq(schema.vehicles.id, Number(sp.edit))))[0] : undefined) : null;
   const viewing = sp.view ? fleet.find((v) => v.id === Number(sp.view)) : null;
   const n = (k: string) => fleet.filter((v) => v.vstatus === k).length;
 
@@ -37,7 +37,7 @@ export default async function CarsPage({ searchParams: sp }: { searchParams: SP 
       <PageHeader title={t('cars')} subtitle="Manage your fleet, prices and availability">
         {canCreate && <Link href={href('/admin/cars', base, { new: 1 })} className="btn-primary"><Plus size={16} />{t('addNewCar')}</Link>}
       </PageHeader>
-      {sp.err && !sp.new && !sp.edit && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
+      {sp.err && !sp.new && !sp.edit && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi featured label="Total vehicles" value={fleet.length} icon={<Car size={18} />} />
         <Kpi label="Available" value={n('AVAILABLE')} tone="green" icon={<CheckCircle2 size={18} />} />
@@ -65,9 +65,9 @@ export default async function CarsPage({ searchParams: sp }: { searchParams: SP 
                   <td className="text-end font-mono tabular-nums">{pkr(v.rateDay)}</td><td className="text-end font-mono tabular-nums">{pkr(v.rate12h)}</td>
                   <td><Badge status={v.overdue ? 'OVERDUE' : v.vstatus} label={v.overdue ? 'Overdue' : V_STATUS_LABEL[v.vstatus]} /></td>
                   <td><div className="flex justify-end gap-1">
-                    <Link href={href('/admin/cars', base, { view: v.id })} className="btn-ghost btn-sm" title="View"><Eye size={14} /></Link>
-                    {canEdit && <Link href={href('/admin/cars', base, { edit: v.id })} className="btn-ghost btn-sm" title="Edit"><Pencil size={14} /></Link>}
-                    {canDelete && <ConfirmForm action={deleteCar} hidden={{ id: v.id }} message={`Remove ${v.model} (${v.regNo})? Cars with booking history are deactivated, not erased.`} className="btn-ghost btn-sm text-bad"><Trash2 size={14} /></ConfirmForm>}
+                    <Link href={href('/admin/cars', base, { view: v.id })} className="btn-ghost btn-sm" aria-label={`View car ${v.regNo}`}><Eye size={14} aria-hidden /></Link>
+                    {canEdit && <Link href={href('/admin/cars', base, { edit: v.id })} className="btn-ghost btn-sm" aria-label={`Edit car ${v.regNo}`}><Pencil size={14} aria-hidden /></Link>}
+                    {canDelete && <ConfirmForm action={deleteCar} hidden={{ id: v.id }} message={`Remove ${v.model} (${v.regNo})? Cars with booking history are deactivated, not erased.`} className="btn-ghost btn-sm text-bad" ariaLabel={`Delete car ${v.regNo}`}><Trash2 size={14} /></ConfirmForm>}
                   </div></td>
                 </tr>
               ))}
@@ -86,7 +86,7 @@ export default async function CarsPage({ searchParams: sp }: { searchParams: SP 
         <Modal title={editing ? `Edit ${editing.model}` : 'Add vehicle'} closeHref={href('/admin/cars', base)} wide>
           <form action={saveCar} className="space-y-5">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <p className="text-sm font-medium text-navy">Vehicle details</p>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Vehicle model" required><input name="model" required defaultValue={editing?.model} placeholder="e.g. Corolla 2023" className="input" /></Field>

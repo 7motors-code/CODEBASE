@@ -25,9 +25,10 @@ export function fmtTime(d: Date | string | null | undefined) {
 /** Parse "YYYY-MM-DDTHH:mm" (datetime-local) or "YYYY-MM-DD" as Pakistan time */
 export function parsePk(s: string | null | undefined): Date | null {
   if (!s) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(`${s}T00:00:00+05:00`);
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) return new Date(`${s}:00+05:00`);
-  const d = new Date(s);
+  // Impossible dates like 2026-13-45 produce an Invalid Date, which is truthy; reject them here.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(`${s}T00:00:00+05:00`)
+    : /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s) ? new Date(`${s}:00+05:00`)
+    : new Date(s);
   return isNaN(+d) ? null : d;
 }
 
@@ -72,3 +73,27 @@ export function str(v: FormDataEntryValue | null | undefined) {
   const s = String(v ?? '').trim();
   return s === '' ? null : s;
 }
+
+/** Upper bound for any single rupee amount; stops typos overflowing int columns. */
+export const MONEY_MAX = 100_000_000;
+/** Whole rupees, never negative, never absurd. Use for every price, fee, fine or cost. */
+export function money(v: FormDataEntryValue | null | undefined, def = 0) {
+  return Math.min(MONEY_MAX, Math.max(0, int(v, def)));
+}
+/** Trimmed text clipped to `max` characters, or null when empty. */
+export function clipStr(v: FormDataEntryValue | null | undefined, max: number) {
+  const s = str(v);
+  return s === null ? null : s.slice(0, max);
+}
+/** A YYYY-MM-DD day string, or `def` when the value is anything else. */
+export function isoDay(v: FormDataEntryValue | null | undefined, def: string) {
+  const s = String(v ?? '').trim();
+  return /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(s) ? s : def;
+}
+/** A YYYY-MM month string, or null. */
+export function isoMonth(v: FormDataEntryValue | null | undefined) {
+  const s = String(v ?? '').trim();
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(s) ? s : null;
+}
+/** Payment methods offered across the admin forms. */
+export const PAY_METHODS = ['Cash', 'Bank transfer', 'JazzCash', 'Easypaisa', 'Card', 'Cheque'] as const;

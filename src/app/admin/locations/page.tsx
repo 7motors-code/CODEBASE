@@ -26,14 +26,14 @@ export default async function LocationsPage({ searchParams: sp }: { searchParams
           {rows.length === 0 && <Empty cols={7} />}
           {rows.map((l) => { const st = stats.find((s) => s.id === l.id); return (
             <tr key={l.id}><td className="font-medium">{l.name}</td><td>{l.city ?? '—'}</td><td>{l.address ?? '—'}</td><td>{st?.n ?? 0}</td><td>{pkr(st?.s ?? 0)}</td><td><Badge status={l.active ? 'ACTIVE' : 'INACTIVE'} /></td>
-              <td><div className="flex justify-end gap-1"><Link className="btn-ghost btn-sm" href={`/admin/bookings?location=${l.id}`}>Bookings</Link>{canEdit && <Link className="btn-ghost btn-sm" href={`/admin/locations?edit=${l.id}`}><Pencil size={13} /></Link>}
-                {canDelete && <ConfirmForm action={deleteLocation} hidden={{ id: l.id }} message="Remove this location? Locations used by bookings are deactivated." className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}</div></td></tr>); })}
+              <td><div className="flex justify-end gap-1"><Link className="btn-ghost btn-sm" href={`/admin/bookings?location=${l.id}`}>Bookings</Link>{canEdit && <Link className="btn-ghost btn-sm" href={`/admin/locations?edit=${l.id}`} aria-label={`Edit location ${l.name}`}><Pencil size={13} aria-hidden /></Link>}
+                {canDelete && <ConfirmForm action={deleteLocation} hidden={{ id: l.id }} message="Remove this location? Locations used by bookings are deactivated." className="btn-ghost btn-sm text-bad" ariaLabel={`Delete location ${l.name}`}><Trash2 size={13} /></ConfirmForm>}</div></td></tr>); })}
         </tbody></table></TableWrap></Card>
       {(sp.new || editing) && (
         <Modal title={editing ? `Edit ${editing.name}` : 'Add location'} closeHref="/admin/locations">
           <form action={saveLocation} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name" required><input name="name" required defaultValue={editing?.name} className="input" placeholder="e.g. Islamabad G-9 branch" /></Field>
               <Field label="City"><input name="city" defaultValue={editing?.city ?? ''} className="input" /></Field>

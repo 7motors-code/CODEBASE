@@ -1,18 +1,21 @@
 import Link from 'next/link';
 import { ilike, or } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { requireUser } from '@/lib/auth';
+import { getPerms, requireUser } from '@/lib/auth';
 import { fmtDate, pkr } from '@/lib/format';
 import { Badge, Card, PageHeader } from '@/components/ui';
 
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
-  await requireUser();
-  const q = (searchParams.q ?? '').trim();
-  const like = `%${q}%`;
+  const user = await requireUser();
+  const perms = await getPerms(user.role);
+  const q = (searchParams.q ?? '').trim().slice(0, 100);
+  // Escape LIKE wildcards so "%" or "_" in a query match literally.
+  const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  // Each group is searched only when the user's role may view that module.
   const [bookings, customers, cars] = q ? await Promise.all([
-    db.select().from(schema.bookings).where(or(ilike(schema.bookings.id, like), ilike(schema.bookings.groupId, like))).limit(20),
-    db.select().from(schema.customers).where(or(ilike(schema.customers.name, like), ilike(schema.customers.phone, like), ilike(schema.customers.cnic, like), ilike(schema.customers.id, like))).limit(20),
-    db.select().from(schema.vehicles).where(or(ilike(schema.vehicles.model, like), ilike(schema.vehicles.regNo, like))).limit(20),
+    perms.bookings.view ? db.select().from(schema.bookings).where(or(ilike(schema.bookings.id, like), ilike(schema.bookings.groupId, like))).limit(20) : [],
+    perms.customers.view ? db.select().from(schema.customers).where(or(ilike(schema.customers.name, like), ilike(schema.customers.phone, like), ilike(schema.customers.cnic, like), ilike(schema.customers.id, like))).limit(20) : [],
+    perms.cars.view ? db.select().from(schema.vehicles).where(or(ilike(schema.vehicles.model, like), ilike(schema.vehicles.regNo, like))).limit(20) : [],
   ]) : [[], [], []];
   return (
     <div className="space-y-4">

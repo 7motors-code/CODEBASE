@@ -40,11 +40,15 @@ export async function fleetStatus(day?: string) {
   const target = day ?? today;
   const { start, end } = dayRange(target);
   const isNow = !day || day === today;
-  const active = await db.select().from(schema.bookings).where(and(
-    inArray(schema.bookings.status, ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED']),
-    lt(schema.bookings.startAt, end), gte(schema.bookings.endAt, isNow ? new Date(0) : start),
-  ));
-  const maint = await db.select().from(schema.maintenance).where(ne(schema.maintenance.status, 'COMPLETED'));
+  // "Now" only looks at open bookings (completed ones never change today's status), so it no
+  // longer loads the whole booking history on every dashboard view.
+  const [active, maint] = await Promise.all([
+    db.select().from(schema.bookings).where(and(
+      inArray(schema.bookings.status, isNow ? ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] : ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED']),
+      lt(schema.bookings.startAt, end), ...(isNow ? [] : [gte(schema.bookings.endAt, start)]),
+    )),
+    db.select().from(schema.maintenance).where(ne(schema.maintenance.status, 'COMPLETED')),
+  ]);
   return vehicles.map((v) => {
     const bs = active.filter((b) => b.vehicleId === v.id);
     const ms = maint.filter((m) => m.vehicleId === v.id);

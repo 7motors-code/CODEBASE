@@ -77,11 +77,11 @@ export function Plate({ reg }: { reg: string }) {
 export function Modal({ title, closeHref, children, wide }: { title: string; closeHref: string; children: ReactNode; wide?: boolean }) {
   const boxId = `modal-${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 md:p-10" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 md:p-10" role="dialog" aria-modal="true" aria-labelledby={`${boxId}-t`}>
       <ModalBehavior closeHref={closeHref} containerId={boxId} />
       <div id={boxId} tabIndex={-1} className={`reveal relative w-full rounded-2xl border border-line bg-panel shadow-modal outline-none ${wide ? 'max-w-4xl' : 'max-w-xl'}`}>
         <div className="flex h-16 items-center justify-between border-b border-line px-6">
-          <h2 className="text-[17px] font-medium text-ink">{title}</h2>
+          <h2 id={`${boxId}-t`} className="text-[17px] font-medium text-ink">{title}</h2>
           <Link href={closeHref} scroll={false} className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-panel2 hover:text-ink" aria-label="Close">
             <X size={18} strokeWidth={1.5} />
           </Link>
@@ -147,12 +147,16 @@ export function Pagination({ page, pages, total, per, makeHref }: { page: number
     <div className="no-print flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 text-[13px] text-muted">
       <span><span className="font-mono tabular-nums text-ink2">{from}–{to}</span> of <span className="font-mono tabular-nums text-ink2">{total}</span></span>
       <nav aria-label="Pagination" className="flex items-center gap-1">
-        <Link className={`btn-quiet btn-sm ${page <= 1 ? 'pointer-events-none opacity-40' : ''}`} href={makeHref(page - 1)}>Previous</Link>
+        {page <= 1
+          ? <span aria-disabled="true" className="btn-quiet btn-sm opacity-40">Previous</span>
+          : <Link className="btn-quiet btn-sm" href={makeHref(page - 1)}>Previous</Link>}
         {nums.map((p) => (
-          <Link key={p} href={makeHref(p)} aria-current={p === page ? 'page' : undefined}
+          <Link key={p} href={makeHref(p)} aria-label={`Page ${p}`} aria-current={p === page ? 'page' : undefined}
             className={`btn-sm btn w-8 px-0 font-mono tabular-nums ${p === page ? 'bg-panel text-ink shadow-xs ring-1 ring-line' : 'text-ink2 hover:bg-panel2'}`}>{p}</Link>
         ))}
-        <Link className={`btn-quiet btn-sm ${page >= pages ? 'pointer-events-none opacity-40' : ''}`} href={makeHref(page + 1)}>Next</Link>
+        {page >= pages
+          ? <span aria-disabled="true" className="btn-quiet btn-sm opacity-40">Next</span>
+          : <Link className="btn-quiet btn-sm" href={makeHref(page + 1)}>Next</Link>}
       </nav>
     </div>
   );

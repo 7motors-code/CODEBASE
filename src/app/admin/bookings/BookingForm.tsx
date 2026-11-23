@@ -83,7 +83,7 @@ export default function BookingForm({ action, bookingId, vehicles, drivers, cust
       <input type="hidden" name="customerId" value={cust.id ?? ''} />
       {selected.map((id) => <input key={id} type="hidden" name="vehicleIds" value={id} />)}
       <input type="hidden" name="rentAmount" value={rent} />
-      {err && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{err}</p>}
+      {err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{err}</p>}
 
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-navy/30 bg-navy-soft p-4">
         <span className="text-xs font-medium text-muted">Booking ID</span>
@@ -92,15 +92,15 @@ export default function BookingForm({ action, bookingId, vehicles, drivers, cust
       </div>
 
       <section className="card p-5">
-        <h3 className="mb-4 font-medium text-navy">Customer details</h3>
+        <h2 className="mb-4 font-medium text-navy">Customer details</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block"><span className="label">Customer name <span className="text-bad">*</span></span>
             <div className="relative flex gap-2">
               <input name="customerName" required value={cust.name ?? ''} onChange={(e) => setCust({ ...cust, name: e.target.value, id: undefined })} className="input" placeholder="Full name" />
-              <button type="button" className="btn-ghost" onClick={() => setShowLookup(!showLookup)} title="Pick existing customer"><Search size={16} /></button>
+              <button type="button" className="btn-ghost" onClick={() => setShowLookup(!showLookup)} title="Pick existing customer" aria-label="Pick existing customer" aria-expanded={showLookup}><Search size={16} aria-hidden /></button>
               {showLookup && (
                 <div className="absolute end-0 top-12 z-20 w-full rounded-xl border border-line bg-panel p-2 shadow-float">
-                  <input autoFocus value={lookup} onChange={(e) => setLookup(e.target.value)} placeholder="Search name, phone, CNIC" className="input mb-2" />
+                  <input autoFocus value={lookup} onChange={(e) => setLookup(e.target.value)} placeholder="Search name, phone, CNIC" aria-label="Search existing customers by name, phone or CNIC" className="input mb-2" />
                   {matches.map((c) => (
                     <button type="button" key={c.id} disabled={c.status === 'BLOCKED'} onClick={() => { setCust(c); setShowLookup(false); }}
                       className="block w-full rounded-lg px-2 py-1.5 text-start text-sm hover:bg-panel2 disabled:opacity-40">
@@ -124,7 +124,7 @@ export default function BookingForm({ action, bookingId, vehicles, drivers, cust
       </section>
 
       <section className="card p-5">
-        <h3 className="mb-4 font-medium text-navy">Guarantor details</h3>
+        <h2 className="mb-4 font-medium text-navy">Guarantor details</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block"><span className="label">Guarantor name</span><input name="guarantorName" defaultValue={ex?.guarantorName ?? ''} className="input" /></label>
           <label className="block"><span className="label">Guarantor phone no</span><input name="guarantorPhone" defaultValue={ex?.guarantorPhone ?? ''} className="input" /></label>
@@ -136,20 +136,20 @@ export default function BookingForm({ action, bookingId, vehicles, drivers, cust
 
       {!ex && (
         <section className="card p-5">
-          <h3 className="mb-4 font-medium text-navy">Verification</h3>
+          <h2 className="mb-4 font-medium text-navy">Verification</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <div><span className="label">Customer signature</span><SignaturePad name="signature" /><p className="mt-2 text-xs text-muted">…or upload a signature image:</p><input type="file" name="signatureFile" accept="image/*" className="mt-1 text-xs" /></div>
+            <div><span className="label">Customer signature</span><SignaturePad name="signature" /><p className="mt-2 text-xs text-muted">…or upload a signature image:</p><input type="file" name="signatureFile" accept="image/*" aria-label="Upload signature image" className="mt-1 text-xs" /></div>
             <div><span className="label">Customer thumb impression</span>
               <div className="rounded-xl border border-dashed border-line bg-panel2 p-4 text-sm">
                 <p className="mb-2 flex items-center gap-2 font-medium"><Fingerprint size={18} className="text-navy" /> Scan Thumb</p>
                 <p className="mb-3 text-xs text-muted">Upload the image saved by your fingerprint scanner (or a photo of the thumb impression on paper).</p>
-                <input type="file" name="thumb" accept="image/*" className="text-xs" />
+                <input type="file" name="thumb" accept="image/*" aria-label="Upload thumb impression image" className="text-xs" />
               </div></div>
           </div>
         </section>)}
 
       <section className="card p-5">
-        <h3 className="mb-4 font-medium text-navy">Schedule</h3>
+        <h2 className="mb-4 font-medium text-navy">Schedule</h2>
         <div className="grid gap-4 md:grid-cols-4">
           <label className="block"><span className="label">Duration type</span>
             <select name="durationType" value={durationType} onChange={(e) => setDurationType(e.target.value)} className="input"><option value="DAY">Per day (24 h)</option><option value="12H">12 hours</option></select></label>
@@ -161,8 +161,8 @@ export default function BookingForm({ action, bookingId, vehicles, drivers, cust
       </section>
 
       <section className="card p-5">
-        <h3 className="mb-4 font-medium text-navy">Vehicle &amp; trip</h3>
-        <input value={vq} onChange={(e) => setVq(e.target.value)} placeholder="Search vehicle by model or plate" className="input mb-3" />
+        <h2 className="mb-4 font-medium text-navy">Vehicle &amp; trip</h2>
+        <input value={vq} onChange={(e) => setVq(e.target.value)} placeholder="Search vehicle by model or plate" aria-label="Search vehicle by model or plate" className="input mb-3" />
         <div className="grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
           {vList.map((v) => {
             const isBusy = busy.vehicles.includes(v.id);
@@ -185,7 +185,7 @@ export default function BookingForm({ action, bookingId, vehicles, drivers, cust
       </section>
 
       <section className="card p-5">
-        <h3 className="mb-4 font-medium text-navy">Driver (optional)</h3>
+        <h2 className="mb-4 font-medium text-navy">Driver (optional)</h2>
         <div className="grid gap-4 md:grid-cols-3">
           <label className="block"><span className="label">Driver name</span>
             <select name="driverId" value={driverId} onChange={(e) => { setDriverId(e.target.value); setDriverTouched(false); }} className="input">
@@ -198,7 +198,7 @@ export default function BookingForm({ action, bookingId, vehicles, drivers, cust
       </section>
 
       <section className="card p-5">
-        <h3 className="mb-4 font-medium text-navy">Payment</h3>
+        <h2 className="mb-4 font-medium text-navy">Payment</h2>
         <div className="grid gap-4 md:grid-cols-4">
           <div className="rounded-xl bg-panel2 p-3"><p className="text-xs text-muted">Rent ({selected.length} car{selected.length === 1 ? '' : 's'})</p><p className="text-lg font-medium">{pkr(rent)}</p></div>
           <label className="block"><span className="label">Total amount (PKR)</span><input type="number" name="totalAmount" min={0} value={totalTouched ? total : autoTotal} onChange={(e) => { setTotalTouched(true); setTotal(e.target.value === '' ? '' : Number(e.target.value)); }} className="input text-lg font-medium" />

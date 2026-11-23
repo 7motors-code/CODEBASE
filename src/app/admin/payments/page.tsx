@@ -53,11 +53,13 @@ export default async function PaymentsPage({ searchParams: sp }: { searchParams:
       </div>
       <Card>
         <form className="no-print grid gap-2 p-4 md:grid-cols-[auto_auto_auto_1fr_auto_auto]" method="get">
+          {sp.tab && <input type="hidden" name="tab" value={sp.tab} />}
+          {calMonth && <input type="hidden" name="cal" value={calMonth} />}
           <Link href={href('/admin/payments', base, { cal: calMonth ? undefined : pkMonth() })} className="btn-ghost">{calMonth ? 'Hide calendar' : 'Show calendar'}</Link>
           <label className="flex items-center gap-2 text-sm text-muted">From <input type="date" name="from" defaultValue={sp.from} className="input" /></label>
           <label className="flex items-center gap-2 text-sm text-muted">To <input type="date" name="to" defaultValue={sp.to} className="input" /></label>
-          <input name="q" defaultValue={sp.q} placeholder="Search by booking ID, phone or customer name" className="input" />
-          <select name="status" defaultValue={sp.status} className="input"><option value="">All</option><option value="pending">Pending</option><option value="paid">Fully paid</option></select>
+          <input name="q" defaultValue={sp.q} placeholder="Search by booking ID, phone or customer name" aria-label="Search by booking ID, phone or customer name" className="input" />
+          <select name="status" defaultValue={sp.status} aria-label="Payment status" className="input"><option value="">All</option><option value="pending">Pending</option><option value="paid">Fully paid</option></select>
           <button className="btn-ghost">Apply</button>
         </form>
         {calMonth && (
@@ -81,7 +83,7 @@ export default async function PaymentsPage({ searchParams: sp }: { searchParams:
                 <tr key={b.id}><td className={x.pending ? 'font-medium text-bad' : 'text-ok'}>{pkr(x.pending)}</td><td>{pkr(x.total)}</td><td>{pkr(x.fine)}</td><td className="text-ok">{pkr(x.paid)}</td>
                   <td><Link className="link font-mono text-xs" href={`/admin/bookings/${b.id}`}>{b.id}</Link></td><td>{c?.name}<span className="block text-xs text-muted">{c?.phone}</span></td><td>{v?.model}{v?.regNo && <span className="mt-1 block"><Plate reg={v.regNo} /></span>}</td><td>{l ?? '—'}</td>
                   <td><Badge status={b.status} /></td><td>{fmtDate(b.startAt)}</td>
-                  <td><div className="flex justify-end gap-1">{x.pending > 0 && <Link className="btn-primary btn-sm" href={`/admin/bookings/${b.id}#pay`}>Receive</Link>}<Link className="btn-ghost btn-sm" href={`/admin/bookings/${b.id}`}><Eye size={13} /></Link></div></td></tr>); })}
+                  <td><div className="flex justify-end gap-1">{x.pending > 0 && <Link className="btn-primary btn-sm" href={`/admin/bookings/${b.id}#pay`}>Receive</Link>}<Link className="btn-ghost btn-sm" href={`/admin/bookings/${b.id}`} aria-label={`View booking ${b.id}`}><Eye size={13} aria-hidden /></Link></div></td></tr>); })}
             </tbody></table></TableWrap>
           <Pagination {...pg} makeHref={(p) => href('/admin/payments', base, { page: p })} />
         </>)}

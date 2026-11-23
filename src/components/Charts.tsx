@@ -1,7 +1,9 @@
 'use client';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 
-const fmt = (v: number) => (v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${Math.round(v / 1000)}k` : String(v));
+// 12,500 → "12.5k" (not "13k"), 1,500 → "1.5k".
+const fmt = (v: number) => (v >= 1_000_000 ? `${+(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${+(v / 1000).toFixed(1)}k` : String(v));
+const rupees = (v: number) => `PKR ${Number(v).toLocaleString('en-PK')}`;
 const AXIS = { stroke: 'rgb(var(--muted))', fontSize: 12, fontFamily: 'var(--font-mono)', tickLine: false, axisLine: false } as const;
 const tip = {
   contentStyle: { background: 'rgb(var(--panel))', border: '1px solid rgb(var(--line))', borderRadius: 10, color: 'rgb(var(--ink))', boxShadow: '0 8px 24px rgba(16,24,40,0.08)', fontSize: 13 },
@@ -10,14 +12,21 @@ const tip = {
 };
 
 /** One accent line (the first) over a muted grid; extra lines render in neutral steps. */
-export function LinesChart({ data, lines, height = 300 }: { data: Record<string, string | number>[]; lines: { key: string; name: string; color: string }[]; height?: number }) {
+export function LinesChart({ data, lines, height = 300, title = 'Chart' }: { data: Record<string, string | number>[]; lines: { key: string; name: string; color: string }[]; height?: number; title?: string }) {
   return (
-    <div>
+    <figure role="group" aria-label={title}>
+      {/* Screen readers get the numbers as a table; the drawn chart is hover-only. */}
+      <table className="sr-only">
+        <caption>{title}</caption>
+        <thead><tr><th scope="col">Period</th>{lines.map((l) => <th key={l.key} scope="col">{l.name}</th>)}</tr></thead>
+        <tbody>{data.map((row, r) => <tr key={r}><th scope="row">{String(row.label ?? r)}</th>{lines.map((l) => <td key={l.key}>{rupees(Number(row[l.key] ?? 0))}</td>)}</tr>)}</tbody>
+      </table>
+      <div aria-hidden>
       {lines.length > 1 && (
         <div className="flex flex-wrap gap-x-5 gap-y-1 px-2 pb-2 text-[13px] text-ink2">
           {lines.map((l, i) => (
             <span key={l.key} className="inline-flex items-center gap-2">
-              <span className={`h-0.5 w-4 rounded-full ${i === 0 ? 'bg-navy' : 'bg-muted'}`} />
+              <span className={`w-4 ${i === 0 ? 'h-0.5 rounded-full bg-navy' : 'border-t-2 border-dashed border-muted'}`} />
               {l.name}
             </span>
           ))}
@@ -34,7 +43,7 @@ export function LinesChart({ data, lines, height = 300 }: { data: Record<string,
         <CartesianGrid vertical={false} stroke="rgb(var(--line))" />
         <XAxis dataKey="label" {...AXIS} dy={8} />
         <YAxis {...AXIS} tickFormatter={fmt} width={44} />
-        <Tooltip {...tip} formatter={(v: number) => `PKR ${v.toLocaleString('en-PK')}`} />
+        <Tooltip {...tip} formatter={(v: number) => rupees(v)} />
         {lines.map((l, i) => (
           <Area
             key={l.key}
@@ -51,7 +60,8 @@ export function LinesChart({ data, lines, height = 300 }: { data: Record<string,
         ))}
       </AreaChart>
     </ResponsiveContainer>
-    </div>
+      </div>
+    </figure>
   );
 }
 
@@ -61,10 +71,10 @@ export function Donut({ data, center, height = 220 }: { data: { name: string; va
     <div className="relative">
       <ResponsiveContainer width="100%" height={height}>
         <PieChart>
-          <Pie data={has ? data : [{ name: 'None', value: 1, color: 'rgb(var(--line))' }]} dataKey="value" nameKey="name" innerRadius="70%" outerRadius="92%" paddingAngle={has ? 1.5 : 0} stroke="none" startAngle={90} endAngle={-270}>
+          <Pie data={has ? data : [{ name: 'None', value: 1, color: 'rgb(var(--line))' }]} dataKey="value" nameKey="name" innerRadius="70%" outerRadius="92%" paddingAngle={has ? 1.5 : 0} stroke="#fff" strokeWidth={has ? 1 : 0} startAngle={90} endAngle={-270}>
             {(has ? data : [{ color: 'rgb(var(--line))' }]).map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
-          {has && <Tooltip {...tip} />}
+          {has && <Tooltip {...tip} formatter={(v: number) => v.toLocaleString('en-PK')} />}
         </PieChart>
       </ResponsiveContainer>
       {center && (

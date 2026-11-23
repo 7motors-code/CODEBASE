@@ -49,8 +49,8 @@ export default async function MaintenancePage({ searchParams: sp }: { searchPara
                 <td><div className="flex flex-wrap justify-end gap-1">
                   {canEdit && m.status === 'SCHEDULED' && <form action={setMaintenanceStatus}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="status" value="IN_PROGRESS" /><button className="btn-ghost btn-sm"><Wrench size={13} /> Send to workshop</button></form>}
                   {canEdit && m.status === 'IN_PROGRESS' && <form action={setMaintenanceStatus} className="flex gap-1"><input type="hidden" name="id" value={m.id} /><input type="hidden" name="status" value="COMPLETED" /><input name="cost" type="number" defaultValue={m.cost} className="input w-24 py-1 text-xs" title="Final cost" /><button className="btn-primary btn-sm"><CheckCircle2 size={13} /> Mark complete</button></form>}
-                  {canEdit && <Link href={`/admin/maintenance?edit=${m.id}`} className="btn-ghost btn-sm"><Pencil size={13} /></Link>}
-                  {canDelete && <ConfirmForm action={deleteMaintenance} hidden={{ id: m.id }} message="Delete this maintenance record?" className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}
+                  {canEdit && <Link href={`/admin/maintenance?edit=${m.id}`} className="btn-ghost btn-sm" aria-label={`Edit maintenance record ${m.id}`}><Pencil size={13} aria-hidden /></Link>}
+                  {canDelete && <ConfirmForm action={deleteMaintenance} hidden={{ id: m.id }} message="Delete this maintenance record?" className="btn-ghost btn-sm text-bad" ariaLabel={`Delete maintenance record ${m.id}`}><Trash2 size={13} /></ConfirmForm>}
                 </div></td></tr>))}
           </tbody></table></TableWrap>
         <Pagination {...pg} makeHref={(p) => href('/admin/maintenance', { q: sp.q, status: sp.status }, { page: p })} />
@@ -59,7 +59,7 @@ export default async function MaintenancePage({ searchParams: sp }: { searchPara
         <Modal title={editing ? `Edit ${editing.id}` : 'Add maintenance expense'} closeHref="/admin/maintenance">
           <form action={saveMaintenance} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <Field label="Vehicle" required><select name="vehicleId" required defaultValue={editing?.vehicleId ?? ''} className="input"><option value="">Select vehicle…</option>
               {vehicles.map((v) => <option key={v.id} value={v.id}>{v.model} ({v.regNo}) · meter {v.meterReading.toLocaleString()} km</option>)}</select></Field>
             <Field label="Maintenance type (pick one or more)" required>

@@ -26,6 +26,7 @@ export default async function DriversPage({ searchParams: sp }: { searchParams: 
       <PageHeader title="Drivers" subtitle="Driver profiles, licences and payments">
         {canCreate && <Link href="/admin/drivers?new=1" className="btn-primary"><Plus size={16} /> Add driver</Link>}
       </PageHeader>
+      {sp.err && !sp.new && !sp.edit && !sp.pay && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
       <form className="mb-5 flex gap-2" method="get"><input name="q" defaultValue={sp.q} placeholder="Search drivers" className="input max-w-md" /><button className="btn-ghost">Search</button>
         <Link href={sp.all ? '/admin/drivers' : '/admin/drivers?all=1'} className="btn-ghost">{sp.all ? 'Active only' : 'Show inactive'}</Link></form>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -49,9 +50,9 @@ export default async function DriversPage({ searchParams: sp }: { searchParams: 
             </div>
             <div className="flex gap-1 border-t border-line p-3">
               {canEdit && <Link href={`/admin/drivers?pay=${d.id}`} className="btn-primary btn-sm flex-1"><Wallet size={13} /> Pay</Link>}
-              <Link href={`/admin/drivers?view=${d.id}`} className="btn-ghost btn-sm"><Eye size={13} /></Link>
-              {canEdit && <Link href={`/admin/drivers?edit=${d.id}`} className="btn-ghost btn-sm"><Pencil size={13} /></Link>}
-              {canDelete && <ConfirmForm action={deleteDriver} hidden={{ id: d.id }} message={`Remove driver ${d.name}? Drivers with trips are deactivated.`} className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}
+              <Link href={`/admin/drivers?view=${d.id}`} className="btn-ghost btn-sm" aria-label={`View driver ${d.name}`}><Eye size={13} aria-hidden /></Link>
+              {canEdit && <Link href={`/admin/drivers?edit=${d.id}`} className="btn-ghost btn-sm" aria-label={`Edit driver ${d.name}`}><Pencil size={13} aria-hidden /></Link>}
+              {canDelete && <ConfirmForm action={deleteDriver} hidden={{ id: d.id }} message={`Remove driver ${d.name}? Drivers with trips are deactivated.`} className="btn-ghost btn-sm text-bad" ariaLabel={`Delete driver ${d.name}`}><Trash2 size={13} /></ConfirmForm>}
             </div>
           </div>))}
       </div>
@@ -60,7 +61,7 @@ export default async function DriversPage({ searchParams: sp }: { searchParams: 
         <Modal title={editing ? `Edit ${editing.name}` : 'Add driver'} closeHref="/admin/drivers">
           <form action={saveDriver} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Driver name" required><input name="name" required defaultValue={editing?.name} className="input" /></Field>
               <Field label="Age"><input name="age" type="number" min={18} defaultValue={editing?.age ?? ''} className="input" /></Field>
@@ -82,6 +83,7 @@ export default async function DriversPage({ searchParams: sp }: { searchParams: 
         <Modal title={`Pay ${paying.driver.name}`} closeHref="/admin/drivers">
           <form action={payDriver} className="space-y-4">
             <input type="hidden" name="driverId" value={paying.driver.id} />
+            {sp.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <p className="text-sm text-muted">Pending: <span className="font-medium text-bad">{pkr(paying.pending)}</span> (earned {pkr(paying.earned)}, paid {pkr(paying.paid)})</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Amount (PKR)" required><input name="amount" type="number" min={1} required defaultValue={paying.pending || ''} className="input" /></Field>

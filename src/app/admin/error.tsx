@@ -1,11 +1,15 @@
 'use client';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { startTransition, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { RotateCcw } from 'lucide-react';
 
 /** Keeps the admin shell on screen when one page fails, and offers a retry. */
 export default function AdminError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const router = useRouter();
   useEffect(() => { console.error(error); }, [error]);
+  // reset() alone re-renders the client boundary; refresh() re-runs the server render too.
+  const retry = () => startTransition(() => { router.refresh(); reset(); });
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
       <div className="card max-w-md p-6 text-center">
@@ -15,7 +19,7 @@ export default function AdminError({ error, reset }: { error: Error & { digest?:
         </p>
         {error.digest && <p className="mt-2 font-mono text-xs text-muted">Ref {error.digest}</p>}
         <div className="mt-5 flex justify-center gap-2">
-          <button type="button" className="btn-primary" onClick={() => reset()}><RotateCcw size={16} strokeWidth={1.75} />Try again</button>
+          <button type="button" className="btn-primary" onClick={retry}><RotateCcw size={16} strokeWidth={1.75} />Try again</button>
           <Link href="/admin" className="btn-ghost">Dashboard</Link>
         </div>
       </div>

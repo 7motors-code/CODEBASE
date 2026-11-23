@@ -56,7 +56,7 @@ export default async function ReportsPage({ searchParams: sp }: { searchParams: 
         <Tile label="Maintenance vehicles" value={r.maintenanceVehicles} tone="rose" />
       </div>
       <p className="text-xs text-muted">Revenue = bookings {pkr(r.bookingRevenue)} + fines {pkr(r.fines)} + damage {pkr(r.damage)}. Expenses = office {pkr(r.officeExpenses)} + maintenance {pkr(r.maintenance)}. Cash sales = payments actually received.</p>
-      <Card title={`Monthly revenue vs. expenses (YTD ${r.year})`}><div className="p-3"><LinesChart data={r.ytd} lines={[{ key: 'revenue', name: 'Revenue', color: '#10b981' }, { key: 'expenses', name: 'Expenses', color: '#f43f5e' }]} height={300} /></div></Card>
+      <Card title={`Monthly revenue vs. expenses (YTD ${r.year})`}><div className="p-3"><LinesChart title={`Monthly revenue vs. expenses, ${r.year}`} data={r.ytd} lines={[{ key: 'revenue', name: 'Revenue', color: '#10b981' }, { key: 'expenses', name: 'Expenses', color: '#f43f5e' }]} height={300} /></div></Card>
       <Card title="Payment details">
         <TableWrap><table className="tbl">
           <thead><tr><th>Pending</th><th>Total</th><th>Paid</th><th>Booking ID</th><th>Customer</th><th>Car</th><th>Location</th><th>Status</th><th>Date</th></tr></thead>

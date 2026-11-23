@@ -5,7 +5,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { requirePerm, log } from '@/lib/auth';
 import { saveUpload } from '@/lib/files';
-import { int, str } from '@/lib/format';
+import { int, str, money } from '@/lib/format';
 import { oneOf, safeBack } from '@/lib/security';
 import { cacheDelPattern } from '@/lib/redis';
 
@@ -15,8 +15,8 @@ export async function saveCar(fd: FormData) {
   const regNo = String(fd.get('regNo') ?? '').trim().toUpperCase();
   const data = {
     model: String(fd.get('model') ?? '').trim(), chassisNo: str(fd.get('chassisNo')), regNo, color: str(fd.get('color')),
-    category: String(fd.get('category') ?? 'Sedan'), rateDay: int(fd.get('rateDay')), rate12h: int(fd.get('rate12h')),
-    meterReading: int(fd.get('meterReading')), investorId: int(fd.get('investorId')) || null,
+    category: String(fd.get('category') ?? 'Sedan'), rateDay: money(fd.get('rateDay')), rate12h: money(fd.get('rate12h')),
+    meterReading: Math.max(0, int(fd.get('meterReading'))), investorId: int(fd.get('investorId')) || null,
   };
   if (!data.model || !regNo || !data.rateDay || !data.rate12h) redirect(`/admin/cars?${id ? `edit=${id}` : 'new=1'}&err=${encodeURIComponent('Model, registration number and both prices are required.')}`);
   const [dup] = await db.select({ id: schema.vehicles.id }).from(schema.vehicles).where(eq(schema.vehicles.regNo, regNo));

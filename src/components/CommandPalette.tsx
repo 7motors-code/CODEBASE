@@ -26,10 +26,11 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setOpen((o) => !o); }
-      if (e.key === '/' && !open && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) {
-        e.preventDefault(); setOpen(true);
-      }
+      // Ctrl/⌘+K only: a single-key shortcut like "/" fires by accident (WCAG 2.1.4).
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setOpen((o) => !o); return; }
+      if (!open) return;
+      if (e.key === 'Escape') { e.preventDefault(); setOpen(false); return; }
+      if (e.key === 'Tab') { e.preventDefault(); inputRef.current?.focus(); } // focus stays in the palette
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -38,10 +39,15 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
   useEffect(() => {
     if (!open) return;
     setQuery(''); setActive(0);
+    const opener = document.activeElement as HTMLElement | null;
     const t = setTimeout(() => inputRef.current?.focus(), 0);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { clearTimeout(t); document.body.style.overflow = prev; };
+    return () => {
+      clearTimeout(t);
+      document.body.style.overflow = prev;
+      if (opener && opener.isConnected && opener !== document.body) opener.focus();
+    };
   }, [open]);
 
   const results = useMemo(() => {
@@ -61,7 +67,6 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(results.length - 1, a + 1)); }
     if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); }
     if (e.key === 'Enter') { e.preventDefault(); go(results[active]); }
-    if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
   };
 
   useEffect(() => {
@@ -74,15 +79,15 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
         type="button"
         onClick={() => setOpen(true)}
         className="me-auto flex h-9 w-full max-w-xs items-center gap-2.5 rounded-lg border border-white/15 bg-white/[0.07] px-3 text-sm text-white/60 transition-colors duration-150 hover:border-white/30 hover:bg-white/10 hover:text-white/85"
-        aria-label="Search and jump (Ctrl K)"
+        aria-keyshortcuts="Control+K Meta+K"
       >
-        <Icons.Search {...ICON} />
+        <Icons.Search {...ICON} aria-hidden />
         <span className="flex-1 text-start">Search or jump to</span>
         <kbd className="hidden rounded border border-white/15 bg-white/10 px-1.5 font-mono text-[11px] text-white/70 sm:inline">{isMac ? '⌘' : 'Ctrl'} K</kbd>
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[70] flex items-start justify-center bg-ink/30 p-4 pt-[12vh]" onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}>
+        <div data-surface="light" className="fixed inset-0 z-[70] flex items-start justify-center bg-ink/30 p-4 pt-[12vh]" onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}>
           <div role="dialog" aria-modal="true" aria-label="Command palette" className="reveal w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-panel shadow-modal">
             <div className="flex items-center gap-3 border-b border-line px-4">
               <Icons.Search size={18} strokeWidth={1.5} className="text-muted" />
@@ -93,6 +98,9 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
                 onKeyDown={onInputKey}
                 placeholder="Type a page, an action, or a name to search"
                 role="combobox"
+                aria-label="Search pages and actions"
+                aria-autocomplete="list"
+                aria-haspopup="listbox"
                 aria-expanded="true"
                 aria-controls="cmd-list"
                 aria-activedescendant={results[active] ? `cmd-${active}` : undefined}
@@ -100,18 +108,20 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
               />
               <kbd className="rounded border border-line bg-panel2 px-1.5 font-mono text-[11px] text-muted">Esc</kbd>
             </div>
-            <ul id="cmd-list" role="listbox" className="max-h-[50vh] overflow-y-auto p-1.5">
-              {results.length === 0 && <li className="px-3 py-8 text-center text-sm text-muted">Nothing found</li>}
+            <p role="status" className="sr-only">{results.length === 0 ? 'Nothing found' : `${results.length} results`}</p>
+            <ul id="cmd-list" role="listbox" aria-label="Results" className="max-h-[50vh] overflow-y-auto p-1.5">
+              {results.length === 0 && <li role="presentation" className="px-3 py-8 text-center text-sm text-muted">Nothing found</li>}
               {results.map((item, i) => {
                 const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[item.icon] ?? Icons.ArrowRight;
                 const showGroup = i === 0 || results[i - 1].group !== item.group;
                 return (
                   <li key={`${item.group}-${item.href}`} role="presentation">
-                    {showGroup && <p className="px-3 pb-1 pt-2.5 text-xs text-muted">{item.group}</p>}
+                    {showGroup && <p aria-hidden className="px-3 pb-1 pt-2.5 text-xs text-muted">{item.group}</p>}
                     <button
                       id={`cmd-${i}`}
                       type="button"
                       role="option"
+                      tabIndex={-1}
                       aria-selected={i === active}
                       onMouseMove={() => setActive(i)}
                       onClick={() => go(item)}
@@ -128,7 +138,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
             <div className="flex gap-4 border-t border-line px-4 py-2.5 text-xs text-muted">
               <span><kbd className="font-mono">↑ ↓</kbd> move</span>
               <span><kbd className="font-mono">Enter</kbd> open</span>
-              <span><kbd className="font-mono">/</kbd> opens this anywhere</span>
+              <span><kbd className="font-mono">Esc</kbd> close</span>
             </div>
           </div>
         </div>

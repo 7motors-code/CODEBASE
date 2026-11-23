@@ -23,7 +23,7 @@ export default async function BookingsPage({ searchParams: sp }: { searchParams:
     .leftJoin(schema.drivers, eq(schema.drivers.id, schema.bookings.driverId))
     .leftJoin(schema.locations, eq(schema.locations.id, schema.bookings.locationId))
     .where(and(from ? gte(schema.bookings.startAt, from) : sql`true`, to ? lt(schema.bookings.startAt, new Date(to.getTime() + 86400000)) : sql`true`,
-      sp.location ? eq(schema.bookings.locationId, Number(sp.location)) : sql`true`, sp.driver ? eq(schema.bookings.driverId, Number(sp.driver)) : sql`true`))
+      Number.isInteger(Number(sp.location)) && sp.location ? eq(schema.bookings.locationId, Number(sp.location)) : sql`true`, Number.isInteger(Number(sp.driver)) && sp.driver ? eq(schema.bookings.driverId, Number(sp.driver)) : sql`true`))
     .orderBy(desc(schema.bookings.createdAt));
   const q = (sp.q ?? '').toLowerCase();
   const searched = rows.filter(({ b, c, v }) => !q || `${b.id} ${b.groupId ?? ''} ${c?.name} ${c?.phone} ${c?.cnic ?? ''} ${v?.model} ${v?.regNo}`.toLowerCase().includes(q));
@@ -80,9 +80,9 @@ export default async function BookingsPage({ searchParams: sp }: { searchParams:
                     <td className="font-medium">{pkr(x?.total)}</td>
                     <td className={x?.pending ? 'font-medium text-bad' : 'text-ok'}>{pkr(x?.pending)}</td>
                     <td><div className="flex justify-end gap-1">
-                      <Link href={`/admin/bookings/${b.id}`} className="btn-ghost btn-sm" title="View"><Eye size={14} /></Link>
-                      {canEdit && !['COMPLETED', 'CANCELLED'].includes(b.status) && <Link href={`/admin/bookings/${b.id}/edit`} className="btn-ghost btn-sm" title="Edit"><Pencil size={14} /></Link>}
-                      <Link href={`/admin/bookings/${b.id}/print`} className="btn-ghost btn-sm" title="Print agreement"><Printer size={14} /></Link>
+                      <Link href={`/admin/bookings/${b.id}`} className="btn-ghost btn-sm" aria-label={`View booking ${b.id}`}><Eye size={14} aria-hidden /></Link>
+                      {canEdit && !['COMPLETED', 'CANCELLED'].includes(b.status) && <Link href={`/admin/bookings/${b.id}/edit`} className="btn-ghost btn-sm" aria-label={`Edit booking ${b.id}`}><Pencil size={14} aria-hidden /></Link>}
+                      <Link href={`/admin/bookings/${b.id}/print`} className="btn-ghost btn-sm" aria-label={`Print agreement for booking ${b.id}`}><Printer size={14} aria-hidden /></Link>
                     </div></td>
                   </tr>);
               })}

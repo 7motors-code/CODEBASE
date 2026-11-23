@@ -6,7 +6,7 @@ import { db, schema } from '@/db';
 import { requirePerm, can } from '@/lib/auth';
 import { bookingBalances, customerTotals } from '@/lib/calc';
 import { fmtDateTime, pkInput, pkr } from '@/lib/format';
-import { Badge, Card, Field, PageHeader, Thumb, Empty } from '@/components/ui';
+import { Badge, Card, Field, PageHeader, Thumb, Empty, TableWrap } from '@/components/ui';
 import { ConfirmForm, Submit } from '@/components/client';
 import { addPayment, changeStatus, deletePayment } from '../actions';
 
@@ -40,7 +40,7 @@ export default async function BookingDetail({ params, searchParams }: { params: 
         <Link href={`${back}/print`} className="btn-ghost"><Printer size={16} /> Rental paper</Link>
         {canEdit && !['COMPLETED', 'CANCELLED'].includes(b.status) && <Link href={`${back}/edit`} className="btn-ghost"><Pencil size={16} /> Edit</Link>}
       </PageHeader>
-      {searchParams.err && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{searchParams.err}</p>}
+      {searchParams.err && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{searchParams.err}</p>}
 
       {canEdit && !['COMPLETED', 'CANCELLED'].includes(b.status) && (
         <Card title="Next step">
@@ -93,11 +93,11 @@ export default async function BookingDetail({ params, searchParams }: { params: 
       </div>
 
       <Card title="Payment history">
-        <table className="tbl"><thead><tr><th>Date</th><th>Type</th><th>Method</th><th>Reference</th><th>Amount</th><th></th></tr></thead><tbody>
+        <TableWrap><table className="tbl"><thead><tr><th>Date</th><th>Type</th><th>Method</th><th>Reference</th><th>Amount</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>
           {pays.length === 0 && <Empty cols={6} text="No payments yet" />}
           {pays.map((p) => <tr key={p.id}><td>{fmtDateTime(p.paidAt)}</td><td><Badge status={p.type} label={p.type.charAt(0) + p.type.slice(1).toLowerCase()} /></td><td>{p.method}</td><td>{p.reference ?? '—'}</td><td className="font-medium">{pkr(p.amount)}</td>
-            <td className="text-end"><Link className="btn-ghost btn-sm" href={`/admin/payments/receipt/${p.id}`}><Printer size={13} /></Link>{canDelPay && <ConfirmForm action={deletePayment} hidden={{ id: p.id, back }} message="Delete this payment record?" className="btn-ghost btn-sm text-bad">Delete</ConfirmForm>}</td></tr>)}
-        </tbody></table>
+            <td className="text-end"><Link className="btn-ghost btn-sm" href={`/admin/payments/receipt/${p.id}`} aria-label={`Print receipt ${p.id}`}><Printer size={13} aria-hidden /></Link>{canDelPay && <ConfirmForm action={deletePayment} hidden={{ id: p.id, back }} message="Delete this payment record?" className="btn-ghost btn-sm text-bad">Delete</ConfirmForm>}</td></tr>)}
+        </tbody></table></TableWrap>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
