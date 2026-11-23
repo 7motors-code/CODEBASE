@@ -18,3 +18,4 @@ db pass*.txt
 *.rdb
 dump.rdb
 Claude outputs/
+.env*
