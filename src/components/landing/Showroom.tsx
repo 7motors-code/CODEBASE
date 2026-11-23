@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pkr } from '@/lib/format';
@@ -21,11 +21,6 @@ export function Showroom({ stats }: { stats: ClassStats }) {
   const stat = stats[cls.category] ?? { count: 0, fromDay: null };
 
   const go = useCallback((delta: number) => setIndex((i) => (i + delta + slides.length) % slides.length), [slides.length]);
-
-  // Warm the cache for the other photos so switching never shows a blank frame.
-  useEffect(() => {
-    slides.forEach((s) => { const img = new window.Image(); img.src = s.src; });
-  }, [slides]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight') { e.preventDefault(); go(document.dir === 'rtl' ? -1 : 1); }
@@ -48,14 +43,13 @@ export function Showroom({ stats }: { stats: ClassStats }) {
               alt={i === index ? s.alt : ''}
               aria-hidden={i !== index}
               fill
-              priority={i === 0}
               sizes="(max-width: 1024px) 100vw, 58vw"
               className={`object-cover transition-[opacity,transform] duration-500 ease-out ${
                 i === index ? 'scale-100 opacity-100' : 'scale-[1.02] opacity-0'
               }`}
             />
           ))}
-          <span className="absolute end-3 top-3 rounded-md bg-black/45 px-2 py-1 text-xs text-white/80 backdrop-blur-sm">
+          <span className="absolute end-3 top-3 rounded-md bg-black/70 px-2 py-1 text-xs text-white backdrop-blur-sm">
             Photo shows the class
           </span>
           <button type="button" onClick={() => go(-1)} aria-label="Previous photo"
@@ -69,7 +63,8 @@ export function Showroom({ stats }: { stats: ClassStats }) {
         </div>
 
         {/* Class card */}
-        <div className="relative border-t border-white/10 bg-white p-4 sm:absolute sm:bottom-4 sm:start-4 sm:w-[320px] sm:rounded-xl sm:border sm:bg-white/95 sm:shadow-float sm:backdrop-blur" aria-live="polite">
+        <div className="relative border-t border-white/10 bg-white p-4 sm:absolute sm:bottom-4 sm:start-4 sm:w-[320px] sm:rounded-xl sm:border sm:bg-white/95 sm:shadow-float sm:backdrop-blur">
+          <p className="sr-only" aria-live="polite">{`${cls.label}, photo ${index + 1} of ${slides.length}`}</p>
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-xl font-bold tracking-[-0.01em] text-ink">{cls.label}</p>
             <span className="text-[13px] text-muted">{cls.seats}</span>
@@ -94,7 +89,7 @@ export function Showroom({ stats }: { stats: ClassStats }) {
       </div>
 
       {/* Photo strip */}
-      <div className="scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="tablist" aria-label="Choose a photo">
+      <div className="scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="group" aria-label="Choose a photo">
         {slides.map((s, i) => {
           const on = i === index;
           const first = i === 0 || slides[i - 1].classIndex !== s.classIndex;
@@ -102,13 +97,12 @@ export function Showroom({ stats }: { stats: ClassStats }) {
             <button
               key={s.src}
               type="button"
-              role="tab"
-              aria-selected={on}
+              aria-current={on ? 'true' : undefined}
               aria-label={`${CAR_CLASSES[s.classIndex].label}: ${s.alt}`}
               onClick={() => setIndex(i)}
               className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[#101216] transition-[box-shadow,opacity] duration-150 ${
                 first && i > 0 ? 'ms-2' : ''
-              } ${on ? 'opacity-100 ring-2 ring-gold ring-offset-2 ring-offset-bg' : 'opacity-50 hover:opacity-100'}`}
+              } ${on ? 'opacity-100 ring-2 ring-navy ring-offset-2 ring-offset-bg' : 'opacity-50 hover:opacity-100'}`}
             >
               <Image src={s.src} alt="" fill sizes="80px" className="object-cover" />
               {on && <span className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-gold" aria-hidden />}

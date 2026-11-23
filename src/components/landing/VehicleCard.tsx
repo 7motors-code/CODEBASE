@@ -54,7 +54,7 @@ export function VehicleCard({ car, onSelect }: VehicleCardProps) {
               <span className="ms-1 font-sans text-muted">/ 12h</span>
             </p>
           </div>
-          <button type="button" onClick={() => onSelect(car)} className="btn-ghost group-hover:border-navy/30">
+          <button type="button" onClick={() => onSelect(car)} aria-label={`Request ${car.model}`} className="btn-ghost group-hover:border-navy/30">
             Request
           </button>
         </div>

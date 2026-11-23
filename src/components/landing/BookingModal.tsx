@@ -15,6 +15,8 @@ interface BookingModalProps {
   onClose: () => void;
 }
 
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function BookingModal({ car, trip, onClose }: BookingModalProps) {
   const [start, setStart] = useState(trip?.start ?? localInput(2));
   const [end, setEnd] = useState(trip?.end ?? localInput(26));
@@ -28,20 +30,40 @@ export function BookingModal({ car, trip, onClose }: BookingModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const photo = car.cardPhotoId || car.photoId;
 
-  // Escape closes, focus moves into the dialog, page behind stops scrolling.
+  const doneRef = useRef<HTMLHeadingElement>(null);
+  // Keep the latest onClose without re-running the mount effect (the parent
+  // passes an inline arrow, which would otherwise steal focus on re-render).
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  // Escape closes, Tab stays inside the dialog, page behind stops scrolling.
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const previouslyFocused = document.activeElement as HTMLElement | null;
-    dialogRef.current?.querySelector<HTMLElement>('input, select, button')?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const dialog = dialogRef.current;
+    dialog?.querySelector<HTMLElement>('input, select, button')?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onCloseRef.current(); return; }
+      if (e.key !== 'Tab' || !dialog) return;
+      const items = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !dialog.contains(active))) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (active === last || !dialog.contains(active))) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKey);
       previouslyFocused?.focus();
     };
-  }, [onClose]);
+  }, []);
+
+  // The form unmounts on success; move focus to the confirmation heading.
+  useEffect(() => { if (done) doneRef.current?.focus(); }, [done]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -91,11 +113,11 @@ export function BookingModal({ car, trip, onClose }: BookingModalProps) {
         </div>
 
         {done ? (
-          <div className="p-6">
+          <div role="status" className="p-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ok-soft text-ok">
               <Check size={20} strokeWidth={2} />
             </div>
-            <h4 className="mt-4 text-lg font-medium text-ink">Request sent</h4>
+            <h4 ref={doneRef} tabIndex={-1} className="mt-4 text-lg font-medium text-ink outline-none">Request sent</h4>
             <p className="mt-1 text-sm text-ink2">The office will call {done.phone} to confirm the {done.vehicleModel}.</p>
             <dl className="mt-5 divide-y divide-line rounded-lg border border-line text-sm">
               <Row label="Reference" value={<span className="font-mono">{done.bookingId}</span>} />

@@ -8,6 +8,7 @@ import { getSetting, rentFor, vehicleClash, withBookingLock } from '@/lib/calc';
 import { buildContact, whatsappWithText } from '@/lib/contact';
 import { parsePk, str, int } from '@/lib/format';
 import { newBookingId, newCustomerId } from '@/lib/ids';
+import { CONCIERGE_SERVICES, PICKUP_HUBS } from '@/components/landing/options';
 import { clientIp, hitRateLimit, isRateLimited } from '@/lib/security';
 
 const cnicNorm = (s: string) => s.replace(/\D/g, '');
@@ -41,7 +42,8 @@ export async function submitLandingBooking(fd: FormData): Promise<InquiryResult>
   const cnic = String(fd.get('cnic') ?? '').trim().slice(0, 20);
   const durationType = fd.get('durationType') === '12H' ? '12H' : 'DAY';
   const bookingType = fd.get('bookingType') === 'With driver' ? 'With driver' : 'Self-drive';
-  const pickupCity = String(fd.get('city') ?? 'Islamabad').trim();
+  const cityRaw = String(fd.get('city') ?? '').trim();
+  const pickupCity = PICKUP_HUBS.find((h) => h.value === cityRaw)?.value ?? 'Islamabad';
   const notes = clip(fd.get('notes'), 1000);
 
   if (!vehicleId) return { ok: false, error: 'Please select a vehicle.' };
@@ -147,10 +149,12 @@ export async function submitLandingBooking(fd: FormData): Promise<InquiryResult>
 export async function submitGeneralInquiry(fd: FormData): Promise<{ ok: boolean; message?: string; error?: string }> {
   const name = String(fd.get('name') ?? '').trim().slice(0, 100);
   const phone = String(fd.get('phone') ?? '').replace(/[\s-]/g, '').slice(0, 20);
-  const serviceType = String(fd.get('serviceType') ?? 'General Inquiry').trim();
+  const serviceRaw = String(fd.get('serviceType') ?? '').trim();
+  const serviceType = CONCIERGE_SERVICES.find((s) => s === serviceRaw) ?? 'General Inquiry';
   const message = String(fd.get('message') ?? '').trim().slice(0, 1000);
 
-  if (!name || !phone) return { ok: false, error: 'Please provide your name and phone number.' };
+  if (!name) return { ok: false, error: 'Please provide your name.' };
+  if (!/^\+?\d{10,15}$/.test(phone)) return { ok: false, error: 'Valid phone number is required (e.g. 03001234567).' };
 
   const ipKey = `landing:contact:ip:${clientIp()}`;
   if (await isRateLimited(ipKey, 10, 60)) {

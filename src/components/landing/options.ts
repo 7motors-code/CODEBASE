@@ -13,13 +13,28 @@ export const SEARCH_EVENT = 'sm:trip';
 export const CLASS_EVENT = 'sm:class';
 export interface TripDetail { city: string; start: string; end: string; durationType: DurationType }
 
-/** datetime-local value `hours` from now, in the visitor's local time. */
+/** Pakistan Standard Time is UTC+5 all year (no daylight saving). */
+const PKT_OFFSET_MS = 5 * 3_600_000;
+
+/**
+ * datetime-local value `hours` from now, on the hour, in Pakistan time.
+ * The server reads these strings as Pakistan time (parsePk), so building
+ * them in the visitor's own timezone would shift visitors abroad by hours.
+ */
 export function localInput(hoursFromNow: number): string {
-  const d = new Date(Date.now() + hoursFromNow * 3_600_000);
-  d.setMinutes(0, 0, 0);
-  const off = d.getTimezoneOffset() * 60_000;
-  return new Date(d.getTime() - off).toISOString().slice(0, 16);
+  const d = new Date(Date.now() + hoursFromNow * 3_600_000 + PKT_OFFSET_MS);
+  d.setUTCMinutes(0, 0, 0);
+  return d.toISOString().slice(0, 16);
 }
+
+/** Group-booking services offered in the concierge form. */
+export const CONCIERGE_SERVICES = [
+  'Wedding convoy',
+  'Corporate monthly lease',
+  'Airport group transfer',
+  'Delegation or guests',
+  'Northern areas tour',
+] as const;
 
 export function imageSrc(id: string): string {
   return id.startsWith('/') ? id : `/api/files/${id}`;

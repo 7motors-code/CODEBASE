@@ -42,7 +42,7 @@ export function FleetExplorer({ vehicles, phone, telHref, whatsappHref }: FleetE
 
   useEffect(() => {
     const onTrip = (e: Event) => setTrip((e as CustomEvent<TripDetail>).detail);
-    const onClass = (e: Event) => { setCategory((e as CustomEvent<string>).detail); setLimit(PAGE); };
+    const onClass = (e: Event) => { setCategory((e as CustomEvent<string>).detail); setQuery(''); setLimit(PAGE); };
     window.addEventListener(SEARCH_EVENT, onTrip);
     window.addEventListener(CLASS_EVENT, onClass);
     return () => {
@@ -96,15 +96,14 @@ export function FleetExplorer({ vehicles, phone, telHref, whatsappHref }: FleetE
 
         {/* Filters */}
         {vehicles.length > 0 && <div className="mt-8 flex min-w-0 flex-col gap-3 border-b border-line pb-4 lg:flex-row lg:items-center lg:justify-between">
-          <div role="tablist" aria-label="Category" className="scrollbar-none -mx-4 flex gap-1 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+          <div role="group" aria-label="Category" className="scrollbar-none -mx-4 flex gap-1 overflow-x-auto px-4 lg:mx-0 lg:px-0">
             {categories.map((c) => {
               const on = category === c;
               return (
                 <button
                   key={c}
                   type="button"
-                  role="tab"
-                  aria-selected={on}
+                  aria-pressed={on}
                   onClick={() => { setCategory(c); setLimit(PAGE); }}
                   className={`h-9 shrink-0 rounded-md px-3 text-sm transition-colors duration-150 ${
                     on ? 'bg-navy-dark font-medium text-white' : 'text-ink2 hover:bg-panel2 hover:text-ink'

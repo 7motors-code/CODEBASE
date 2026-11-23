@@ -23,7 +23,12 @@ body { font-feature-settings: 'ss01', 'cv01'; -webkit-font-smoothing: antialiase
 ::selection { background: rgb(11 42 91 / 0.14); }
 
 @layer base {
+  html { scroll-padding-top: 5rem; }
   :focus-visible { outline: 2px solid #1E4A8F; outline-offset: 2px; }
+  /* On navy surfaces the blue ring disappears; use light gold there. A light
+     card nested inside a dark band switches back. */
+  [data-surface='dark'] :focus-visible { outline-color: #F2CF63; }
+  [data-surface='light'] :focus-visible { outline-color: #1E4A8F; }
   h1, h2, h3 { text-wrap: balance; }
 }
 
@@ -60,7 +65,7 @@ body { font-feature-settings: 'ss01', 'cv01'; -webkit-font-smoothing: antialiase
 
   /* Forms */
   .input {
-    @apply h-10 w-full rounded-lg border border-line bg-panel px-3 text-sm text-ink shadow-xs outline-none
+    @apply h-10 w-full rounded-lg border border-muted/80 bg-panel px-3 text-sm text-ink shadow-xs outline-none
       transition-[border-color,box-shadow] duration-150 placeholder:text-muted
       focus:border-navy-light focus:ring-[3px] focus:ring-navy/10;
   }

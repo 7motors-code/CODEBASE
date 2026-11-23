@@ -29,7 +29,7 @@ const POINTS = [
 
 export function ExperienceSection({ graceHours, example }: ExperienceSectionProps) {
   return (
-    <section id="how-it-works" className="scroll-mt-20 bg-navy-dark py-20 text-white md:py-28">
+    <section id="how-it-works" data-surface="dark" className="scroll-mt-20 bg-navy-dark py-20 text-white md:py-28">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-12 lg:gap-16 lg:px-8">
         <div data-reveal className="lg:col-span-5">
           <h2 className="display text-[34px] leading-[1.08] md:text-5xl">How renting <span className="text-gold">works</span></h2>
@@ -66,18 +66,18 @@ function RentalClock({ graceHours, example }: { graceHours: number; example: Ren
   const ticks = [0, 6, 12, 18, 24];
 
   return (
-    <figure className="rounded-2xl bg-panel p-6 text-ink shadow-modal sm:p-8">
+    <figure data-surface="light" className="rounded-2xl bg-panel p-6 text-ink shadow-modal sm:p-8">
       <figcaption className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="text-base font-semibold text-ink">{example ? `${example.model}, picked up at 09:00` : 'A car picked up at 09:00'}</span>
         <span className="text-[13px] text-muted">Example rental</span>
       </figcaption>
 
-      <div className="mt-10 space-y-8" aria-hidden>
+      <div dir="ltr" className="mt-10 space-y-8" aria-hidden>
         <Track label="12-hour shift" rate={example ? money(example.rate12h) : null} end={12} grace={graceHours} pct={pct} />
         <Track label="24-hour day" rate={example ? money(example.rateDay) : null} end={24} grace={graceHours} pct={pct} />
       </div>
 
-      <div className="relative mt-4 h-5 font-mono text-xs tabular-nums text-muted" aria-hidden>
+      <div dir="ltr" className="relative mt-4 h-5 font-mono text-xs tabular-nums text-muted" aria-hidden>
         {ticks.map((t) => (
           <span key={t} className={`absolute ${t === 0 ? '' : '-translate-x-1/2'}`} style={{ left: pct(t) }}>{fmt(t)}</span>
         ))}

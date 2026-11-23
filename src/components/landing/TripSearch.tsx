@@ -29,15 +29,15 @@ export function TripSearch({ graceHours }: { graceHours: number }) {
       <p className="px-4 pb-1 pt-3 text-lg font-bold tracking-[-0.01em] text-ink">Find a car</p>
       <div className="grid gap-2 md:grid-cols-[1.1fr_1fr_1fr_auto]">
         <Cell label="Pickup">
-          <select value={city} onChange={(e) => setCity(e.target.value)} className="input border-0 bg-transparent shadow-none focus:ring-0">
+          <select value={city} onChange={(e) => setCity(e.target.value)} className="input border-0 bg-transparent shadow-none focus:ring-0 focus-visible:outline-none">
             {PICKUP_HUBS.map((h) => <option key={h.value} value={h.value}>{h.label}</option>)}
           </select>
         </Cell>
         <Cell label="From">
-          <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} required className="input border-0 bg-transparent shadow-none focus:ring-0" />
+          <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} required className="input border-0 bg-transparent shadow-none focus:ring-0 focus-visible:outline-none" />
         </Cell>
         <Cell label="Until">
-          <input type="datetime-local" value={end} min={start} onChange={(e) => setEnd(e.target.value)} required className="input border-0 bg-transparent shadow-none focus:ring-0" />
+          <input type="datetime-local" value={end} min={start} onChange={(e) => setEnd(e.target.value)} required className="input border-0 bg-transparent shadow-none focus:ring-0 focus-visible:outline-none" />
         </Cell>
         <button type="submit" className="btn-accent btn-lg h-auto min-h-12 md:px-7">
           <Search size={18} strokeWidth={1.75} />
@@ -45,16 +45,15 @@ export function TripSearch({ graceHours }: { graceHours: number }) {
         </button>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-3 pb-1 pt-3">
-        <div role="radiogroup" aria-label="Rental basis" className="inline-flex rounded-lg bg-panel2 p-0.5">
+        <div role="group" aria-label="Rental basis" className="inline-flex rounded-lg border border-muted/50 bg-panel2 p-0.5">
           {([['DAY', '24-hour day'], ['12H', '12-hour shift']] as const).map(([v, label]) => (
             <button
               key={v}
               type="button"
-              role="radio"
-              aria-checked={durationType === v}
+              aria-pressed={durationType === v}
               onClick={() => setDurationType(v)}
               className={`h-8 rounded-md px-3 text-[13px] transition-colors duration-150 ${
-                durationType === v ? 'bg-panel font-medium text-ink shadow-xs' : 'text-ink2 hover:text-ink'
+                durationType === v ? 'bg-navy-dark font-medium text-white shadow-xs' : 'text-ink2 hover:text-ink'
               }`}
             >
               {label}
@@ -69,8 +68,8 @@ export function TripSearch({ graceHours }: { graceHours: number }) {
 
 function Cell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block rounded-lg px-1 pt-1.5 transition-colors duration-150 focus-within:bg-panel2 hover:bg-panel2/60">
-      <span className="block px-3 text-xs text-muted">{label}</span>
+    <label className="block rounded-lg border border-muted/50 px-1 pt-1.5 transition-[background-color,box-shadow] duration-150 focus-within:border-navy-light focus-within:bg-panel2 focus-within:ring-2 focus-within:ring-navy-light hover:bg-panel2/60">
+      <span className="block px-3 text-xs text-ink2">{label}</span>
       {children}
     </label>
   );

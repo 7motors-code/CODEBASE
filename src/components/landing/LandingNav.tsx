@@ -38,6 +38,7 @@ export function LandingNav({ businessName, phone, telHref }: LandingNavProps) {
 
   return (
     <header
+      data-surface="dark"
       className={`sticky top-0 z-40 w-full border-b bg-navy-dark text-white transition-shadow duration-150 ${
         scrolled ? 'border-white/10 shadow-float' : 'border-transparent'
       }`}
