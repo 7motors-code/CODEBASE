@@ -33,27 +33,27 @@ export default async function DamagePage({ searchParams: sp }: { searchParams: {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Customer Damage" subtitle="Log damage caused by a customer, attach evidence and bill it" />
-      {sp.saved && <p className="rounded-xl bg-emerald-500/15 px-4 py-3 text-sm text-emerald-300">Damage report {sp.saved} saved and added to the customer&apos;s pending balance.</p>}
-      {sp.err && <p className="rounded-xl bg-rose-500/15 px-4 py-3 text-sm text-rose-300">{sp.err}</p>}
+      <PageHeader title="Damage" subtitle="Log damage caused by a customer, attach evidence and bill it" />
+      {sp.saved && <p className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">Damage report {sp.saved} saved and added to the customer&apos;s pending balance.</p>}
+      {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
       {canCreate && (
-        <Card title={<span className="flex items-center gap-2"><TriangleAlert size={18} className="text-gold" /> Log new incident</span>}>
+        <Card title={<span className="flex items-center gap-2"><TriangleAlert size={18} className="text-navy" /> Log new incident</span>}>
           <div className="p-5">
             {!sel ? (<>
-              <form method="get" className="flex gap-2"><input name="bq" defaultValue={sp.bq} placeholder="Select booking: search booking ID, customer name, phone or CNIC…" className="input" /><button className="btn-gold"><Search size={16} /> Find</button></form>
+              <form method="get" className="flex gap-2"><input name="bq" defaultValue={sp.bq} placeholder="Select booking: search booking ID, customer name, phone or CNIC" className="input" /><button className="btn-primary"><Search size={16} /> Find</button></form>
               <div className="mt-3 grid gap-2 md:grid-cols-3">{bMatches.map(({ b, c, v }) => (
-                <Link key={b.id} href={`/admin/damage?booking=${b.id}`} className="rounded-xl border border-line bg-panel2 p-3 text-sm hover:border-gold">
-                  <span className="font-mono text-xs text-gold">{b.id}</span><span className="block font-semibold">{c?.name} · {c?.phone}</span><span className="block text-xs text-muted">{v?.model} ({v?.regNo}) · <Badge status={b.status} /></span></Link>))}
+                <Link key={b.id} href={`/admin/damage?booking=${b.id}`} className="rounded-xl border border-line bg-panel2 p-3 text-sm hover:border-navy/40">
+                  <span className="font-mono text-xs text-navy">{b.id}</span><span className="block font-medium">{c?.name} · {c?.phone}</span><span className="block text-xs text-muted">{v?.model} ({v?.regNo}) · <Badge status={b.status} /></span></Link>))}
                 {bq && bMatches.length === 0 && <p className="text-sm text-muted">No booking found.</p>}</div>
             </>) : (
               <form action={saveDamage} className="space-y-4">
                 <input type="hidden" name="bookingId" value={sel.b.id} />
-                <div className="flex flex-wrap items-center gap-3 rounded-xl bg-panel2 p-3 text-sm"><span className="font-mono text-gold">{sel.b.id}</span><span>{sel.c?.name} · {sel.c?.phone}</span><span>{sel.v?.model} ({sel.v?.regNo})</span><Link href="/admin/damage" className="link ms-auto">Change</Link></div>
+                <div className="flex flex-wrap items-center gap-3 rounded-xl bg-panel2 p-3 text-sm"><span className="font-mono text-navy">{sel.b.id}</span><span>{sel.c?.name} · {sel.c?.phone}</span><span>{sel.v?.model} ({sel.v?.regNo})</span><Link href="/admin/damage" className="link ms-auto">Change</Link></div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="Damage type" required><input name="damageType" list="dtypes" required placeholder="Type to search or add new" className="input" /><datalist id="dtypes">{types.map((t) => <option key={t.id} value={t.name} />)}</datalist></Field>
                   <Field label="Estimated repair cost (PKR)" required><input name="estimatedCost" type="number" min={0} required className="input" /></Field>
                 </div>
-                <Field label="Detailed description"><textarea name="description" rows={3} className="input" placeholder="Where is the damage, how it happened…" /></Field>
+                <Field label="Detailed description"><textarea name="description" rows={3} className="input" placeholder="Where is the damage, how it happened" /></Field>
                 <ImageInput name="media" label="Evidence upload (photos / videos)" multiple accept="image/*,video/*" />
                 <div className="flex justify-end"><Submit>Submit damage report</Submit></div>
               </form>)}
@@ -61,20 +61,20 @@ export default async function DamagePage({ searchParams: sp }: { searchParams: {
         </Card>)}
 
       <Card title="Damage history">
-        <form className="no-print flex gap-2 p-4" method="get"><input name="q" defaultValue={sp.q} placeholder="Search by car reg no, name or customer…" className="input max-w-md" /><button className="btn-ghost">Search</button></form>
+        <form className="no-print flex gap-2 p-4" method="get"><input name="q" defaultValue={sp.q} placeholder="Search by car reg no, name or customer" className="input max-w-md" /><button className="btn-ghost">Search</button></form>
         <TableWrap><table className="tbl">
           <thead><tr><th>Date</th><th>Time</th><th>Vehicle</th><th>Customer</th><th>Damage type</th><th>Status</th><th>Amount</th><th>Paid</th><th className="text-end">Actions</th></tr></thead>
           <tbody>
             {pg.slice.length === 0 && <Empty cols={9} />}
             {pg.slice.map(({ d, c, v }) => (
               <tr key={d.id}><td>{fmtDate(d.createdAt)}</td><td>{fmtTime(d.createdAt)}</td><td>{v?.model}<span className="block text-xs text-muted">{v?.regNo}</span></td><td>{c}</td><td>{d.damageType}</td>
-                <td><Badge status={d.status} /></td><td className="font-semibold">{pkr(d.estimatedCost)}</td><td className="text-emerald-400">{pkr(paid.get(d.id) ?? 0)}</td>
+                <td><Badge status={d.status} /></td><td className="font-medium">{pkr(d.estimatedCost)}</td><td className="text-ok">{pkr(paid.get(d.id) ?? 0)}</td>
                 <td><div className="flex flex-wrap justify-end gap-1">
                   <Link className="btn-ghost btn-sm" href={`/admin/damage?view=${d.id}`}><Eye size={13} /></Link>
                   {canEdit && <Link className="btn-ghost btn-sm" href={`/admin/damage?edit=${d.id}`}><Pencil size={13} /></Link>}
-                  {canPay && d.status === 'PENDING' && <Link className="btn-gold btn-sm" href={`/admin/damage?pay=${d.id}`}>Collect</Link>}
+                  {canPay && d.status === 'PENDING' && <Link className="btn-primary btn-sm" href={`/admin/damage?pay=${d.id}`}>Collect</Link>}
                   {canEdit && d.status === 'PENDING' && <ConfirmForm action={setDamageStatus} hidden={{ id: d.id, status: 'WAIVED' }} message="Waive this damage charge? The customer will not pay it.">Waive</ConfirmForm>}
-                  {canDelete && <ConfirmForm action={deleteDamage} hidden={{ id: d.id }} message="Delete this damage report?" className="btn-ghost btn-sm text-rose-400"><Trash2 size={13} /></ConfirmForm>}
+                  {canDelete && <ConfirmForm action={deleteDamage} hidden={{ id: d.id }} message="Delete this damage report?" className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}
                 </div></td></tr>))}
           </tbody></table></TableWrap>
         <Pagination {...pg} makeHref={(p) => href('/admin/damage', { q: sp.q }, { page: p })} />
@@ -84,7 +84,7 @@ export default async function DamagePage({ searchParams: sp }: { searchParams: {
         <Modal title={`Damage ${viewing.d.id}`} closeHref="/admin/damage" wide>
           <div className="mb-4 flex justify-end"><PrintButton label="Print report" /></div>
           <div className="grid gap-3 text-sm sm:grid-cols-3">
-            {[['Booking', viewing.d.bookingId], ['Customer', viewing.c], ['Vehicle', `${viewing.v?.model} (${viewing.v?.regNo})`], ['Type', viewing.d.damageType], ['Estimated cost', pkr(viewing.d.estimatedCost)], ['Status', viewing.d.status]].map(([k, v]) => <div key={k} className="rounded-xl bg-panel2 p-3"><p className="text-xs text-muted">{k}</p><p className="font-semibold">{v}</p></div>)}
+            {[['Booking', viewing.d.bookingId], ['Customer', viewing.c], ['Vehicle', `${viewing.v?.model} (${viewing.v?.regNo})`], ['Type', viewing.d.damageType], ['Estimated cost', pkr(viewing.d.estimatedCost)], ['Status', viewing.d.status]].map(([k, v]) => <div key={k} className="rounded-xl bg-panel2 p-3"><p className="text-xs text-muted">{k}</p><p className="font-medium">{v}</p></div>)}
           </div>
           {viewing.d.description && <p className="mt-4 text-sm">{viewing.d.description}</p>}
           <div className="mt-4 flex flex-wrap gap-2">{viewing.d.mediaIds.map((id) => <a key={id} href={`/api/files/${id}`} target="_blank"><Thumb id={id} alt="evidence" size={120} /></a>)}</div>

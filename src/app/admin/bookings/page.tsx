@@ -6,7 +6,7 @@ import { requirePerm, can } from '@/lib/auth';
 import { T } from '@/lib/prefs';
 import { bookingBalances } from '@/lib/calc';
 import { fmtDateTime, parsePk, pkr } from '@/lib/format';
-import { Badge, Card, Kpi, PageHeader, Pagination, TableWrap, Empty, href, paginate } from '@/components/ui';
+import { Badge, Card, Kpi, PageHeader, Pagination, TableWrap, Empty, href, paginate, Plate } from '@/components/ui';
 
 const TABS = ['ALL', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
@@ -37,20 +37,20 @@ export default async function BookingsPage({ searchParams: sp }: { searchParams:
   const base = { q: sp.q, status: sp.status, from: sp.from, to: sp.to, location: sp.location, driver: sp.driver };
   const now = new Date();
   return (
-    <div>
-      <PageHeader title="Booking Management" subtitle="Create and manage all rental bookings">
-        {canCreate && <Link href="/admin/bookings/new" className="btn-gold"><Plus size={16} />{t('createBooking')}</Link>}
+    <div className="space-y-6">
+      <PageHeader title="Bookings" subtitle="Create and manage all rental bookings">
+        {canCreate && <Link href="/admin/bookings/new" className="btn-primary"><Plus size={16} />{t('createBooking')}</Link>}
       </PageHeader>
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="Pending" value={count('PENDING')} tone="yellow" icon={<Clock size={18} />} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Kpi featured label="Pending" value={count('PENDING')} tone="yellow" icon={<Clock size={18} />} />
         <Kpi label="Confirmed" value={count('CONFIRMED')} tone="blue" icon={<CheckCircle2 size={18} />} />
-        <Kpi label="In Progress" value={count('IN_PROGRESS')} tone="orange" icon={<PlayCircle size={18} />} />
+        <Kpi label="In progress" value={count('IN_PROGRESS')} tone="orange" icon={<PlayCircle size={18} />} />
         <Kpi label="Completed" value={count('COMPLETED')} tone="green" icon={<Flag size={18} />} />
       </div>
       <Card>
         <form className="no-print grid gap-2 p-4 md:grid-cols-[1fr_auto_auto_auto_auto_auto]" method="get">
           {status !== 'ALL' && <input type="hidden" name="status" value={status} />}
-          <input name="q" defaultValue={sp.q} placeholder="Search booking ID, customer, phone, CNIC, car or plate…" className="input" />
+          <input name="q" defaultValue={sp.q} placeholder="Search booking ID, customer, phone, CNIC, car or plate" className="input" />
           <input type="date" name="from" defaultValue={sp.from} className="input" title="From" />
           <input type="date" name="to" defaultValue={sp.to} className="input" title="To" />
           <select name="location" defaultValue={sp.location} className="input"><option value="">All locations</option>{locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
@@ -59,7 +59,7 @@ export default async function BookingsPage({ searchParams: sp }: { searchParams:
         </form>
         <div className="no-print flex flex-wrap gap-1 border-b border-line px-4 pb-3">
           {TABS.map((s) => <Link key={s} href={href('/admin/bookings', base, { status: s === 'ALL' ? undefined : s, page: undefined })}
-            className={`btn-sm btn ${status === s ? 'bg-gold text-navy-dark' : 'btn-ghost'}`}>{s === 'ALL' ? 'All' : s === 'IN_PROGRESS' ? 'In Progress' : s.charAt(0) + s.slice(1).toLowerCase()} <span className="opacity-70">({count(s)})</span></Link>)}
+            className={`btn-sm btn ${status === s ? 'bg-navy text-white' : 'btn-ghost'}`}>{s === 'ALL' ? 'All' : s === 'IN_PROGRESS' ? 'In Progress' : s.charAt(0) + s.slice(1).toLowerCase()} <span className="opacity-70">({count(s)})</span></Link>)}
         </div>
         <TableWrap>
           <table className="tbl">
@@ -71,14 +71,14 @@ export default async function BookingsPage({ searchParams: sp }: { searchParams:
                 const overdue = b.status === 'IN_PROGRESS' && b.endAt < now;
                 return (
                   <tr key={b.id}>
-                    <td><Link href={`/admin/bookings/${b.id}`} className="link">{b.id}</Link>{b.groupId && <span className="block text-[10px] text-muted">{b.groupId}</span>}{b.source === 'PORTAL' && <span className="badge mt-1 bg-sky-500/15 text-sky-400">Portal</span>}</td>
-                    <td><span className="font-semibold">{c?.name}</span><span className="block text-xs text-muted">{c?.phone}</span></td>
-                    <td>{v?.model}<span className="block text-xs text-muted">{v?.regNo}</span></td>
+                    <td><Link href={`/admin/bookings/${b.id}`} className="link">{b.id}</Link>{b.groupId && <span className="block text-[11px] text-muted">{b.groupId}</span>}{b.source === 'PORTAL' && <span className="badge mt-1 bg-info-soft text-info">Portal</span>}</td>
+                    <td><span className="font-medium">{c?.name}</span><span className="block text-xs text-muted">{c?.phone}</span></td>
+                    <td>{v?.model}{v?.regNo && <span className="mt-1 block"><Plate reg={v.regNo} /></span>}</td>
                     <td>{d ?? '—'}</td><td>{l ?? '—'}</td>
                     <td className="whitespace-nowrap text-xs">{fmtDateTime(b.startAt)}<br />{fmtDateTime(b.endAt)}</td>
                     <td>{overdue ? <Badge status="OVERDUE" label="Overdue" /> : <Badge status={b.status} />}</td>
-                    <td className="font-semibold">{pkr(x?.total)}</td>
-                    <td className={x?.pending ? 'font-semibold text-rose-400' : 'text-emerald-400'}>{pkr(x?.pending)}</td>
+                    <td className="font-medium">{pkr(x?.total)}</td>
+                    <td className={x?.pending ? 'font-medium text-bad' : 'text-ok'}>{pkr(x?.pending)}</td>
                     <td><div className="flex justify-end gap-1">
                       <Link href={`/admin/bookings/${b.id}`} className="btn-ghost btn-sm" title="View"><Eye size={14} /></Link>
                       {canEdit && !['COMPLETED', 'CANCELLED'].includes(b.status) && <Link href={`/admin/bookings/${b.id}/edit`} className="btn-ghost btn-sm" title="Edit"><Pencil size={14} /></Link>}

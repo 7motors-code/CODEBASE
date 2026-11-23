@@ -14,6 +14,12 @@ Module._load = function (request, parent, isMain) {
 };
 
 process.on('beforeExit', async () => {
+  if (globalThis._redis) {
+    try {
+      await globalThis._redis.quit();
+      globalThis._redis = undefined;
+    } catch {}
+  }
   if (globalThis._pool) {
     try {
       await globalThis._pool.end();

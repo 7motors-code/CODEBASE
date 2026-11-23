@@ -22,45 +22,45 @@ export default async function DriversPage({ searchParams: sp }: { searchParams: 
   const trips = viewing ? await db.select({ b: schema.bookings, v: schema.vehicles }).from(schema.bookings).leftJoin(schema.vehicles, eq(schema.vehicles.id, schema.bookings.vehicleId)).where(eq(schema.bookings.driverId, viewing.driver.id)).orderBy(desc(schema.bookings.startAt)) : [];
   const pays = viewing ? await db.select().from(schema.driverPayments).where(eq(schema.driverPayments.driverId, viewing.driver.id)).orderBy(desc(schema.driverPayments.date)) : [];
   return (
-    <div>
-      <PageHeader title="Driver Management" subtitle="Driver profiles, licences and payments">
-        {canCreate && <Link href="/admin/drivers?new=1" className="btn-gold"><Plus size={16} /> Add driver</Link>}
+    <div className="space-y-6">
+      <PageHeader title="Drivers" subtitle="Driver profiles, licences and payments">
+        {canCreate && <Link href="/admin/drivers?new=1" className="btn-primary"><Plus size={16} /> Add driver</Link>}
       </PageHeader>
-      <form className="mb-5 flex gap-2" method="get"><input name="q" defaultValue={sp.q} placeholder="Search drivers…" className="input max-w-md" /><button className="btn-ghost">Search</button>
+      <form className="mb-5 flex gap-2" method="get"><input name="q" defaultValue={sp.q} placeholder="Search drivers" className="input max-w-md" /><button className="btn-ghost">Search</button>
         <Link href={sp.all ? '/admin/drivers' : '/admin/drivers?all=1'} className="btn-ghost">{sp.all ? 'Active only' : 'Show inactive'}</Link></form>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {list.length === 0 && <p className="text-muted">No drivers yet.</p>}
         {list.map(({ driver: d, earned, paid, pending, onTrip, trips: n }) => (
           <div key={d.id} className="card overflow-hidden">
-            <div className="flex items-center gap-4 bg-gradient-to-r from-navy to-navy-light p-4 text-white">
+            <div className="flex items-center gap-4 border-b border-line bg-panel2 p-4 text-ink">
               <Thumb id={d.photoId} alt={d.name} size={60} />
-              <div className="min-w-0 flex-1"><p className="truncate text-lg font-bold">{d.name}</p>
+              <div className="min-w-0 flex-1"><p className="truncate text-base font-medium">{d.name}</p>
                 <div className="mt-1 flex flex-wrap gap-1"><Badge status={onTrip ? 'BOOKED' : d.status === 'ACTIVE' ? 'AVAILABLE' : 'INACTIVE'} label={onTrip ? 'On trip' : d.status === 'ACTIVE' ? 'Available' : 'Inactive'} /><Badge status={d.paymentBasis} /></div></div>
             </div>
             <div className="space-y-1.5 p-4 text-sm">
-              <p className="flex items-center gap-2 text-muted"><IdCard size={14} /> Licence {d.licenseNo ?? '—'}{d.licenseExpiry && <span className={d.licenseExpiry < today ? 'text-rose-400' : ''}> · exp {fmtDate(d.licenseExpiry)}</span>}</p>
+              <p className="flex items-center gap-2 text-muted"><IdCard size={14} /> Licence {d.licenseNo ?? '—'}{d.licenseExpiry && <span className={d.licenseExpiry < today ? 'text-bad' : ''}> · exp {fmtDate(d.licenseExpiry)}</span>}</p>
               <p className="flex items-center gap-2 text-muted"><Phone size={14} /> {d.phone ?? '—'}</p>
               <p className="text-muted">{d.paymentBasis === 'SALARY' ? `Salary ${pkr(d.monthlySalary)}/month` : `Per day fee ${pkr(d.perDayFee)}`} · {n} trip(s)</p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-xl bg-panel2 p-2"><p className="text-[10px] uppercase text-muted">Total</p><p className="text-sm font-bold">{pkr(earned)}</p></div>
-                <div className="rounded-xl bg-emerald-500/10 p-2"><p className="text-[10px] uppercase text-muted">Paid</p><p className="text-sm font-bold text-emerald-400">{pkr(paid)}</p></div>
-                <div className="rounded-xl bg-rose-500/10 p-2"><p className="text-[10px] uppercase text-muted">Pending</p><p className="text-sm font-bold text-rose-400">{pkr(pending)}</p></div>
+                <div className="rounded-xl bg-panel2 p-2"><p className="text-[11px] text-muted">Total</p><p className="text-sm font-medium">{pkr(earned)}</p></div>
+                <div className="rounded-xl bg-ok-soft p-2"><p className="text-[11px] text-muted">Paid</p><p className="text-sm font-medium text-ok">{pkr(paid)}</p></div>
+                <div className="rounded-xl bg-bad-soft p-2"><p className="text-[11px] text-muted">Pending</p><p className="text-sm font-medium text-bad">{pkr(pending)}</p></div>
               </div>
             </div>
             <div className="flex gap-1 border-t border-line p-3">
-              {canEdit && <Link href={`/admin/drivers?pay=${d.id}`} className="btn-gold btn-sm flex-1"><Wallet size={13} /> Pay</Link>}
+              {canEdit && <Link href={`/admin/drivers?pay=${d.id}`} className="btn-primary btn-sm flex-1"><Wallet size={13} /> Pay</Link>}
               <Link href={`/admin/drivers?view=${d.id}`} className="btn-ghost btn-sm"><Eye size={13} /></Link>
               {canEdit && <Link href={`/admin/drivers?edit=${d.id}`} className="btn-ghost btn-sm"><Pencil size={13} /></Link>}
-              {canDelete && <ConfirmForm action={deleteDriver} hidden={{ id: d.id }} message={`Remove driver ${d.name}? Drivers with trips are deactivated.`} className="btn-ghost btn-sm text-rose-400"><Trash2 size={13} /></ConfirmForm>}
+              {canDelete && <ConfirmForm action={deleteDriver} hidden={{ id: d.id }} message={`Remove driver ${d.name}? Drivers with trips are deactivated.`} className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}
             </div>
           </div>))}
       </div>
 
       {(sp.new || editing) && (
-        <Modal title={editing ? `Edit ${editing.name}` : 'Add Driver'} closeHref="/admin/drivers">
+        <Modal title={editing ? `Edit ${editing.name}` : 'Add driver'} closeHref="/admin/drivers">
           <form action={saveDriver} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm text-rose-300">{sp.err}</p>}
+            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Driver name" required><input name="name" required defaultValue={editing?.name} className="input" /></Field>
               <Field label="Age"><input name="age" type="number" min={18} defaultValue={editing?.age ?? ''} className="input" /></Field>
@@ -82,7 +82,7 @@ export default async function DriversPage({ searchParams: sp }: { searchParams: 
         <Modal title={`Pay ${paying.driver.name}`} closeHref="/admin/drivers">
           <form action={payDriver} className="space-y-4">
             <input type="hidden" name="driverId" value={paying.driver.id} />
-            <p className="text-sm text-muted">Pending: <span className="font-bold text-rose-400">{pkr(paying.pending)}</span> (earned {pkr(paying.earned)}, paid {pkr(paying.paid)})</p>
+            <p className="text-sm text-muted">Pending: <span className="font-medium text-bad">{pkr(paying.pending)}</span> (earned {pkr(paying.earned)}, paid {pkr(paying.paid)})</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Amount (PKR)" required><input name="amount" type="number" min={1} required defaultValue={paying.pending || ''} className="input" /></Field>
               <Field label="Date"><input name="date" type="date" defaultValue={pkDay()} className="input" /></Field>
@@ -95,12 +95,12 @@ export default async function DriversPage({ searchParams: sp }: { searchParams: 
         </Modal>)}
       {viewing && (
         <Modal title={viewing.driver.name} closeHref="/admin/drivers" wide>
-          <h3 className="mb-2 font-bold">Trip history</h3>
+          <h3 className="mb-2 font-medium">Trip history</h3>
           <table className="tbl"><thead><tr><th>Booking</th><th>Car</th><th>Dates</th><th>Status</th><th>Driver amount</th></tr></thead><tbody>
             {trips.length === 0 && <Empty cols={5} />}
             {trips.map(({ b, v }) => <tr key={b.id}><td><Link className="link" href={`/admin/bookings/${b.id}`}>{b.id}</Link></td><td>{v?.model}</td><td>{fmtDateTime(b.startAt)} – {fmtDateTime(b.endAt)}</td><td><Badge status={b.status} /></td><td>{pkr(b.driverAmount)}</td></tr>)}
           </tbody></table>
-          <h3 className="mb-2 mt-6 font-bold">Payment history</h3>
+          <h3 className="mb-2 mt-6 font-medium">Payment history</h3>
           <table className="tbl"><thead><tr><th>Date</th><th>Method</th><th>Note</th><th>Amount</th></tr></thead><tbody>
             {pays.length === 0 && <Empty cols={4} />}
             {pays.map((p) => <tr key={p.id}><td>{fmtDate(p.date)}</td><td>{p.method}</td><td>{p.note ?? '—'}</td><td>{pkr(p.amount)}</td></tr>)}

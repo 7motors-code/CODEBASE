@@ -7,6 +7,7 @@ import { requirePerm, log } from '@/lib/auth';
 import { saveUpload } from '@/lib/files';
 import { int, str } from '@/lib/format';
 import { oneOf, safeBack } from '@/lib/security';
+import { cacheDelPattern } from '@/lib/redis';
 
 export async function saveCar(fd: FormData) {
   const id = int(fd.get('id'));
@@ -29,6 +30,7 @@ export async function saveCar(fd: FormData) {
     const [v] = await db.insert(schema.vehicles).values({ ...data, photoId, cardPhotoId }).returning();
     await log('create', 'vehicle', v.id, regNo);
   }
+  await cacheDelPattern('vehicles:*');
   revalidatePath('/admin/cars');
   redirect('/admin/cars');
 }
@@ -44,6 +46,7 @@ export async function deleteCar(fd: FormData) {
   if (any) await db.update(schema.vehicles).set({ active: false }).where(eq(schema.vehicles.id, id));
   else await db.delete(schema.vehicles).where(eq(schema.vehicles.id, id));
   await log(any ? 'deactivate' : 'delete', 'vehicle', id);
+  await cacheDelPattern('vehicles:*');
   revalidatePath('/admin/cars');
   redirect('/admin/cars');
 }
@@ -51,6 +54,7 @@ export async function deleteCar(fd: FormData) {
 export async function restoreCar(fd: FormData) {
   await requirePerm('cars', 'edit');
   await db.update(schema.vehicles).set({ active: true }).where(eq(schema.vehicles.id, int(fd.get('id'))));
+  await cacheDelPattern('vehicles:*');
   revalidatePath('/admin/cars');
   redirect('/admin/cars?show=inactive');
 }

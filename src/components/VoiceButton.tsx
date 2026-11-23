@@ -20,7 +20,7 @@ export default function VoiceButton({ lang }: { lang: string }) {
   function start() {
     const W = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
     const SR = W.SpeechRecognition || W.webkitSpeechRecognition;
-    if (!SR) { alert('Voice input is not supported in this browser. Please use Google Chrome.'); return; }
+    if (!SR) { setHeard('Voice input needs Google Chrome'); setTimeout(() => setHeard(''), 3000); return; }
     const r = new SR();
     r.lang = lang === 'ur' ? 'ur-PK' : 'en-US';
     r.interimResults = false;
@@ -39,10 +39,10 @@ export default function VoiceButton({ lang }: { lang: string }) {
   }
   return (
     <div className="no-print fixed bottom-5 end-5 z-40 flex items-center gap-2">
-      {heard && <span className="rounded-full bg-panel px-3 py-1 text-xs shadow">“{heard}”</span>}
-      <button onClick={start} title="Voice: say a module name or what to search"
-        className={`flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition ${listening ? 'animate-pulse bg-rose-500 text-white' : 'bg-gradient-to-br from-gold to-gold-dark text-navy-dark hover:scale-105'}`}>
-        <Mic size={20} />
+      {heard && <span className="rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] text-ink shadow-float">“{heard}”</span>}
+      <button onClick={start} title="Voice: say a module name or what to search" aria-label={listening ? 'Listening' : 'Voice command'} aria-pressed={listening}
+        className={`flex h-11 w-11 items-center justify-center rounded-full border shadow-float transition-colors duration-150 ${listening ? 'border-bad bg-bad text-white' : 'border-line bg-panel text-ink2 hover:text-ink'}`}>
+        <Mic size={18} strokeWidth={1.5} />
       </button>
     </div>
   );

@@ -1,91 +1,67 @@
-import { MapPin, Navigation, Phone, Check } from 'lucide-react';
+import { MapPin, MessageCircle, Phone } from 'lucide-react';
 
-export function LocationsSection() {
-  const hubs = [
-    {
-      city: 'Islamabad / Rawalpindi',
-      tag: 'Headquarters & Airport Hub',
-      address: 'Main Blue Area & Islamabad International Airport (ISB) VIP Terminal',
-      hours: 'Open 24 Hours / 7 Days',
-      phone: '051-2800007',
-      features: ['Airport Meet & Greet', 'Protocol Convoys', 'Northern Areas Passports'],
-    },
-    {
-      city: 'Lahore',
-      tag: 'Punjab Hub',
-      address: 'DHA Phase 5 Commercial & Allama Iqbal International Airport',
-      hours: 'Open 24 Hours / 7 Days',
-      phone: '042-35800007',
-      features: ['DHA Delivery in 30 Mins', 'Executive Chauffeurs', 'Wedding Fleet'],
-    },
-    {
-      city: 'Karachi',
-      tag: 'Southern Coast Hub',
-      address: 'Clifton Block 4 & Jinnah International Airport (Terminal 1)',
-      hours: 'Open 24 Hours / 7 Days',
-      phone: '021-35800007',
-      features: ['Corporate Monthly Leases', 'Armed Escorts On-Demand', 'City Transfers'],
-    },
-  ];
+export interface Hub {
+  id: string | number;
+  name: string;
+  city: string | null;
+  address: string | null;
+}
 
+/** Used until the office adds its branches under Admin → Locations: cities only, no invented addresses. */
+export const DEFAULT_HUBS: Hub[] = [
+  { id: 'isb', name: 'Islamabad / Rawalpindi', city: null, address: null },
+  { id: 'lhe', name: 'Lahore', city: null, address: null },
+  { id: 'khi', name: 'Karachi', city: null, address: null },
+];
+
+interface LocationsSectionProps {
+  hubs: Hub[];
+  phone: string;
+  telHref: string | null;
+  whatsappHref: string | null;
+}
+
+export function LocationsSection({ hubs, phone, telHref, whatsappHref }: LocationsSectionProps) {
   return (
-    <section id="locations" className="scroll-mt-24 py-16">
+    <section id="locations" className="scroll-mt-20 py-20 md:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <span className="text-xs font-bold uppercase tracking-widest text-gold">Branch Network</span>
-          <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">
-            Prime Pickup Hubs & Doorstep Delivery
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/70">
-            Pick up your car directly at the airport terminal upon landing or have our concierge deliver it to your residence, hotel, or office.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {hubs.map((hub, idx) => (
-            <div key={idx} className="liquid-card flex flex-col justify-between rounded-2xl p-6">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="rounded-full border border-gold/30 bg-gold/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase text-gold-light">
-                    {hub.tag}
-                  </span>
-                  <Navigation size={14} className="text-white/40" />
-                </div>
-
-                <h3 className="mt-4 text-xl font-bold text-white">{hub.city}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-white/70">{hub.address}</p>
-
-                <div className="mt-4 space-y-2 border-t border-white/10 pt-4 text-xs text-white/60">
-                  <p className="flex items-center gap-2">
-                    <span className="text-gold font-semibold">Hours:</span> {hub.hours}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-gold font-semibold">Hotline:</span> {hub.phone}
-                  </p>
-                </div>
-
-                <ul className="mt-4 space-y-1.5 border-t border-white/10 pt-3 text-[11px] text-white/80">
-                  {hub.features.map((f, i) => (
-                    <li key={i} className="flex items-center gap-1.5">
-                      <Check size={12} className="text-emerald-400" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-white/10">
-                <a
-                  href={`tel:${hub.phone}`}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition"
-                >
-                  <Phone size={13} />
-                  <span>Call {hub.city.split(' ')[0]} Office</span>
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <h2 className="display text-[34px] leading-[1.08] text-ink md:text-5xl">Where to pick up</h2>
+            <p className="mt-3 text-base leading-relaxed text-ink2">
+              Collect from a branch or the airport, or ask for the car to be brought to your home, hotel or office.
+            </p>
+          </div>
+          {(telHref || whatsappHref) && (
+            <div className="flex flex-wrap gap-2">
+              {telHref && (
+                <a href={telHref} className="btn-ghost">
+                  <Phone size={16} strokeWidth={1.5} className="text-muted" />
+                  <span className="font-mono tabular-nums">{phone}</span>
                 </a>
-              </div>
+              )}
+              {whatsappHref && (
+                <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-ghost">
+                  <MessageCircle size={16} strokeWidth={1.5} className="text-muted" />
+                  WhatsApp
+                </a>
+              )}
             </div>
-          ))}
+          )}
         </div>
+
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {hubs.map((h) => (
+            <li key={h.id} className="rounded-xl border border-line border-t-4 border-t-navy bg-panel p-6 shadow-xs transition-[box-shadow,border-color] duration-150 hover:border-t-gold hover:shadow-float">
+              <div className="flex items-center gap-2.5">
+                <MapPin size={18} strokeWidth={2} className="text-navy" aria-hidden />
+                <h3 className="text-lg font-semibold text-ink">{h.name}</h3>
+              </div>
+              {h.address && <p className="mt-2 ps-[26px] text-sm leading-relaxed text-ink2">{h.address}</p>}
+              {h.city && h.city !== h.name && <p className="mt-1 ps-[26px] text-[13px] text-muted">{h.city}</p>}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

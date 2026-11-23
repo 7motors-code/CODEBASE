@@ -1,180 +1,114 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, CheckCircle2, MessageSquare, Sparkles, Phone } from 'lucide-react';
+import Image from 'next/image';
+import { Check, MessageCircle } from 'lucide-react';
 import { submitGeneralInquiry } from '@/app/actions/landing';
 
-export function ConciergeSection() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+const SERVICES = ['Wedding convoy', 'Corporate monthly lease', 'Airport group transfer', 'Delegation or guests', 'Northern areas tour'] as const;
+const OFFER = [
+  'One quote for the whole group of cars',
+  'Monthly billing for companies',
+  'Drivers on request for every car',
+] as const;
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+export function ConciergeSection({ whatsappHref }: { whatsappHref: string | null }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
-
+    const form = e.currentTarget;
+    setSubmitting(true);
+    setError(null);
     try {
-      const fd = new FormData(e.currentTarget);
-      const res = await submitGeneralInquiry(fd);
+      const res = await submitGeneralInquiry(new FormData(form));
       if (res.ok) {
-        setSuccessMsg(res.message || 'Inquiry submitted successfully!');
-        (e.target as HTMLFormElement).reset();
+        setSuccess(res.message ?? 'Request received');
+        form.reset();
       } else {
-        setErrorMsg(res.error || 'Failed to submit inquiry.');
+        setError(res.error ?? 'The request could not be sent. Please try again.');
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Network error occurred. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'The connection dropped. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <section id="concierge" className="scroll-mt-24 py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="glass-surface relative overflow-hidden rounded-3xl p-8 shadow-2xl lg:p-12">
-          {/* Subtle luminous background highlights */}
-          <div className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-gold/10 blur-[90px]" />
-          <div className="pointer-events-none absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-navy-light/20 blur-[90px]" />
+    <section id="concierge" className="relative scroll-mt-20 overflow-hidden bg-navy-dark py-20 text-white md:py-28">
+      <Image src="/cars/land-cruiser.jpg" alt="" fill sizes="100vw" className="object-cover object-right opacity-70" />
+      <div className="absolute inset-0 bg-gradient-to-r from-navy-dark via-navy-dark/85 to-navy-dark/20" aria-hidden />
+      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
+        <div>
+          <h2 className="display text-[34px] leading-[1.08] md:text-5xl">Several cars <span className="text-gold">at once</span></h2>
+          <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/75">
+            Weddings, company contracts, visiting delegations and family trips up north. Tell us the dates and how many cars, and the office sends one quote.
+          </p>
+          <ul className="mt-8 space-y-3">
+            {OFFER.map((item) => (
+              <li key={item} className="flex items-center gap-3 text-base font-medium text-white">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold text-navy-dark" aria-hidden><Check size={14} strokeWidth={2.5} /></span>
+                {item}
+              </li>
+            ))}
+          </ul>
+          {whatsappHref && (
+            <a
+              href={`${whatsappHref}?text=${encodeURIComponent('Hello Seven Motors, I need a quote for several cars.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-on-dark btn-lg mt-8"
+            >
+              <MessageCircle size={18} strokeWidth={1.75} />
+              Ask on WhatsApp
+            </a>
+          )}
+        </div>
 
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-            {/* Left Content */}
-            <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold-light">
-                <Sparkles size={13} className="text-gold" />
-                <span>Special Fleet Arrangements</span>
-              </div>
-              <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
-                VIP Protocol, Wedding Convoys & Corporate Leasing
-              </h2>
-              <p className="mt-4 text-sm leading-relaxed text-white/70">
-                Need multiple Land Cruisers, blacked-out Fortuners, or luxury sedans for weddings, state guests, or corporate delegations? 
-                Our executive concierge plans every detail from security escorts to custom convoy timing.
-              </p>
+        <div className="rounded-2xl bg-panel p-6 text-ink shadow-modal sm:p-8">
+          <h3 className="text-xl font-bold tracking-[-0.01em] text-ink">Request a quote</h3>
+          <p className="mt-1 text-sm text-ink2">The office calls back on the number you leave</p>
 
-              <div className="mt-6 space-y-3 text-xs text-white/80">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gold/20 text-gold text-[10px] font-bold">✓</span>
-                  <span>Bulletproof / Armored B6 & B7 vehicles on prior reservation</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gold/20 text-gold text-[10px] font-bold">✓</span>
-                  <span>VIP Airport Tarmac & Red Carpet terminal protocol clearance</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gold/20 text-gold text-[10px] font-bold">✓</span>
-                  <span>Custom monthly billing & dedicated account executive</span>
-                </div>
+          {success ? (
+            <div role="status" className="mt-6 rounded-xl border border-line bg-panel p-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ok-soft text-ok">
+                <Check size={20} strokeWidth={2} />
               </div>
-
-              <div className="mt-8 flex items-center gap-3">
-                <a
-                  href="https://wa.me/923000000000?text=Hello%20Seven%20Motors%20Concierge%2C%20I%20have%20a%20VIP%20fleet%20inquiry."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 px-4 py-2 text-xs font-bold text-emerald-400 hover:bg-emerald-900/40 transition"
-                >
-                  <MessageSquare size={14} />
-                  <span>Direct WhatsApp Concierge</span>
-                </a>
-              </div>
+              <p className="mt-4 text-[15px] font-medium text-ink">Request received</p>
+              <p className="mt-1 text-sm text-ink2">{success}</p>
+              <button type="button" onClick={() => setSuccess(null)} className="btn-ghost mt-5">Send another</button>
             </div>
-
-            {/* Right Inquiry Form */}
-            <div className="liquid-card rounded-2xl p-6 sm:p-8">
-              <h3 className="text-lg font-bold text-white">Request a Tailored Fleet Proposal</h3>
-              <p className="mt-1 text-xs text-white/60">
-                Submit your convoy requirements and receive a detailed quote within 30 minutes.
-              </p>
-
-              {successMsg ? (
-                <div className="my-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/15 p-6 text-center text-xs text-emerald-300">
-                  <CheckCircle2 size={36} className="mx-auto mb-2 text-emerald-400" />
-                  <strong className="block text-sm font-bold text-white">Request Logged in System!</strong>
-                  <p className="mt-1">{successMsg}</p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
-                  {errorMsg && (
-                    <div className="rounded-xl border border-rose-500/30 bg-rose-500/15 p-3 text-xs text-rose-300">
-                      {errorMsg}
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-white/70">
-                      Your Name / Organization
-                    </label>
-                    <input
-                      name="name"
-                      required
-                      placeholder="e.g. Tariq Malik / Embassy Delegation"
-                      className="liquid-glass-input w-full rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/40 outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-white/70">
-                        Phone (WhatsApp)
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        required
-                        placeholder="03001234567"
-                        className="liquid-glass-input w-full rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/40 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-white/70">
-                        Requirement Type
-                      </label>
-                      <select
-                        name="serviceType"
-                        className="liquid-glass-input w-full rounded-xl px-3 py-2 text-xs text-white outline-none"
-                      >
-                        <option value="Wedding Convoy" className="bg-navy-dark text-white">Wedding Convoy</option>
-                        <option value="VIP Protocol" className="bg-navy-dark text-white">VIP Protocol / State Guest</option>
-                        <option value="Corporate Monthly Lease" className="bg-navy-dark text-white">Corporate Monthly Lease</option>
-                        <option value="Airport Multi-Van Transfer" className="bg-navy-dark text-white">Airport Multi-Van Transfer</option>
-                        <option value="Northern Areas Tour" className="bg-navy-dark text-white">Northern Areas Tour (Prado/Fortuner)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-white/70">
-                      Details / Number of Vehicles / Specific Dates
-                    </label>
-                    <textarea
-                      name="message"
-                      rows={3}
-                      placeholder="Tell us about the dates, route, vehicle models, or special requests..."
-                      className="liquid-glass-input w-full rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/40 outline-none resize-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="btn-gold flex h-10 w-full items-center justify-center gap-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-gold/20 disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <span>Sending Query...</span>
-                    ) : (
-                      <>
-                        <Send size={13} />
-                        <span>Submit VIP Query</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-              )}
-            </div>
-          </div>
+          ) : (
+            <form onSubmit={submit} className="mt-6 space-y-4">
+              {error && <p role="alert" className="rounded-lg border border-bad/20 bg-bad-soft px-3 py-2.5 text-sm text-bad">{error}</p>}
+              <label className="block">
+                <span className="label">Name or organisation</span>
+                <input name="name" required maxLength={100} autoComplete="name" className="input" />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="label">Phone (WhatsApp)</span>
+                  <input type="tel" name="phone" required autoComplete="tel" inputMode="tel" placeholder="0300 1234567" className="input font-mono" />
+                </label>
+                <label className="block">
+                  <span className="label">What for</span>
+                  <select name="serviceType" className="input">
+                    {SERVICES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </label>
+              </div>
+              <label className="block">
+                <span className="label">Dates, number of cars, route</span>
+                <textarea name="message" rows={4} maxLength={1000} className="input resize-none" />
+              </label>
+              <button type="submit" disabled={submitting} className="btn-accent btn-lg w-full">
+                {submitting ? 'Sending…' : 'Send request'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </section>

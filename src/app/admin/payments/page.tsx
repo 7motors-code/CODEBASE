@@ -5,7 +5,7 @@ import { db, schema } from '@/db';
 import { requirePerm } from '@/lib/auth';
 import { bookingBalances } from '@/lib/calc';
 import { addMonths, dayRange, fmtDate, fmtDateTime, monthLabel, parsePk, pkDay, pkMonth, pkr } from '@/lib/format';
-import { Badge, Card, Kpi, PageHeader, Pagination, TableWrap, Empty, href, paginate } from '@/components/ui';
+import { Badge, Card, Kpi, PageHeader, Pagination, TableWrap, Empty, href, paginate, Plate } from '@/components/ui';
 
 export default async function PaymentsPage({ searchParams: sp }: { searchParams: { q?: string; from?: string; to?: string; page?: string; cal?: string; status?: string; tab?: string } }) {
   await requirePerm('payments');
@@ -40,12 +40,12 @@ export default async function PaymentsPage({ searchParams: sp }: { searchParams:
   }
   const recent = sp.tab === 'all' ? await db.select({ p: schema.payments, c: schema.customers.name }).from(schema.payments).leftJoin(schema.customers, eq(schema.customers.id, schema.payments.customerId)).where(payWhere()).orderBy(desc(schema.payments.paidAt)).limit(300) : [];
   return (
-    <div>
-      <PageHeader title="Payments & Billing" subtitle={from || to ? `${sp.from ? fmtDate(sp.from) : '…'} – ${sp.to ? fmtDate(sp.to) : '…'}` : 'All time'}>
+    <div className="space-y-6">
+      <PageHeader title="Payments" subtitle={from || to ? `${sp.from ? fmtDate(sp.from) : '…'} – ${sp.to ? fmtDate(sp.to) : '…'}` : 'All time'}>
         <Link href={href('/admin/payments', base, { tab: sp.tab === 'all' ? undefined : 'all' })} className="btn-ghost">{sp.tab === 'all' ? 'By booking' : 'All payment records'}</Link>
       </PageHeader>
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Kpi label="Total revenue" value={pkr(totalRev)} icon={<Wallet size={18} />} hint="Booking totals + fines" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <Kpi featured label="Total revenue" value={pkr(totalRev)} icon={<Wallet size={18} />} hint="Booking totals + fines" />
         <Kpi label="Today's payments" value={pkr(today.s)} tone="cyan" icon={<CalendarDays size={18} />} />
         <Kpi label="Pending payments" value={pkr(pending)} tone="red" icon={<Clock size={18} />} />
         <Kpi label="Payments received" value={pkr(received.s)} tone="green" icon={<BadgeCheck size={18} />} />
@@ -62,15 +62,15 @@ export default async function PaymentsPage({ searchParams: sp }: { searchParams:
         </form>
         {calMonth && (
           <div className="border-b border-line p-4">
-            <div className="mb-2 flex items-center gap-3 text-sm font-semibold"><Link href={href('/admin/payments', base, { cal: addMonths(calMonth, -1) })}>‹</Link>{monthLabel(calMonth)}<Link href={href('/admin/payments', base, { cal: addMonths(calMonth, 1) })}>›</Link><span className="text-xs font-normal text-muted">received per day — click a day to filter</span></div>
+            <div className="mb-2 flex items-center gap-3 text-sm font-medium"><Link href={href('/admin/payments', base, { cal: addMonths(calMonth, -1) })}>‹</Link>{monthLabel(calMonth)}<Link href={href('/admin/payments', base, { cal: addMonths(calMonth, 1) })}>›</Link><span className="text-xs font-normal text-muted">received per day — click a day to filter</span></div>
             <div className="grid grid-cols-7 gap-1 text-center text-xs">
-              {calDays.map((x) => <Link key={x.d} href={href('/admin/payments', { ...base, from: x.d, to: x.d })} className={`rounded-lg p-2 ${x.s ? 'bg-emerald-500/15' : 'bg-panel2'} hover:ring-1 hover:ring-gold`}><span className="block font-semibold">{Number(x.d.slice(8))}</span><span className="text-[10px] text-muted">{x.s ? `${Math.round(x.s / 1000)}k` : '—'}</span></Link>)}
+              {calDays.map((x) => <Link key={x.d} href={href('/admin/payments', { ...base, from: x.d, to: x.d })} className={`rounded-lg p-2 ${x.s ? 'bg-ok-soft' : 'bg-panel2'} hover:ring-1 hover:ring-navy/20`}><span className="block font-medium">{Number(x.d.slice(8))}</span><span className="text-[11px] text-muted">{x.s ? `${Math.round(x.s / 1000)}k` : '—'}</span></Link>)}
             </div>
           </div>)}
         {sp.tab === 'all' ? (
           <TableWrap><table className="tbl"><thead><tr><th>Date</th><th>Receipt</th><th>Customer</th><th>Booking / damage</th><th>Type</th><th>Method</th><th>Amount</th></tr></thead><tbody>
             {recent.length === 0 && <Empty cols={7} />}
-            {recent.map(({ p, c }) => <tr key={p.id}><td>{fmtDateTime(p.paidAt)}</td><td><Link className="link font-mono text-xs" href={`/admin/payments/receipt/${p.id}`}>{p.id}</Link></td><td>{c}</td><td className="font-mono text-xs">{p.bookingId ?? p.damageId}</td><td><Badge status={p.type} label={p.type.charAt(0) + p.type.slice(1).toLowerCase()} /></td><td>{p.method}</td><td className="font-semibold">{pkr(p.amount)}</td></tr>)}
+            {recent.map(({ p, c }) => <tr key={p.id}><td>{fmtDateTime(p.paidAt)}</td><td><Link className="link font-mono text-xs" href={`/admin/payments/receipt/${p.id}`}>{p.id}</Link></td><td>{c}</td><td className="font-mono text-xs">{p.bookingId ?? p.damageId}</td><td><Badge status={p.type} label={p.type.charAt(0) + p.type.slice(1).toLowerCase()} /></td><td>{p.method}</td><td className="font-medium">{pkr(p.amount)}</td></tr>)}
           </tbody></table></TableWrap>
         ) : (<>
           <TableWrap><table className="tbl">
@@ -78,10 +78,10 @@ export default async function PaymentsPage({ searchParams: sp }: { searchParams:
             <tbody>
               {pg.slice.length === 0 && <Empty cols={11} />}
               {pg.slice.map(({ b, c, v, l }) => { const x = bal.get(b.id)!; return (
-                <tr key={b.id}><td className={x.pending ? 'font-bold text-rose-400' : 'text-emerald-400'}>{pkr(x.pending)}</td><td>{pkr(x.total)}</td><td>{pkr(x.fine)}</td><td className="text-emerald-400">{pkr(x.paid)}</td>
-                  <td><Link className="link font-mono text-xs" href={`/admin/bookings/${b.id}`}>{b.id}</Link></td><td>{c?.name}<span className="block text-xs text-muted">{c?.phone}</span></td><td>{v?.model}<span className="block text-xs text-muted">{v?.regNo}</span></td><td>{l ?? '—'}</td>
+                <tr key={b.id}><td className={x.pending ? 'font-medium text-bad' : 'text-ok'}>{pkr(x.pending)}</td><td>{pkr(x.total)}</td><td>{pkr(x.fine)}</td><td className="text-ok">{pkr(x.paid)}</td>
+                  <td><Link className="link font-mono text-xs" href={`/admin/bookings/${b.id}`}>{b.id}</Link></td><td>{c?.name}<span className="block text-xs text-muted">{c?.phone}</span></td><td>{v?.model}{v?.regNo && <span className="mt-1 block"><Plate reg={v.regNo} /></span>}</td><td>{l ?? '—'}</td>
                   <td><Badge status={b.status} /></td><td>{fmtDate(b.startAt)}</td>
-                  <td><div className="flex justify-end gap-1">{x.pending > 0 && <Link className="btn-gold btn-sm" href={`/admin/bookings/${b.id}#pay`}>Receive</Link>}<Link className="btn-ghost btn-sm" href={`/admin/bookings/${b.id}`}><Eye size={13} /></Link></div></td></tr>); })}
+                  <td><div className="flex justify-end gap-1">{x.pending > 0 && <Link className="btn-primary btn-sm" href={`/admin/bookings/${b.id}#pay`}>Receive</Link>}<Link className="btn-ghost btn-sm" href={`/admin/bookings/${b.id}`}><Eye size={13} /></Link></div></td></tr>); })}
             </tbody></table></TableWrap>
           <Pagination {...pg} makeHref={(p) => href('/admin/payments', base, { page: p })} />
         </>)}

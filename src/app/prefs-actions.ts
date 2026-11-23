@@ -7,8 +7,3 @@ export async function toggleLang() {
   c.set('lang', c.get('lang')?.value === 'ur' ? 'en' : 'ur', { maxAge: year, path: '/' });
   revalidatePath('/', 'layout');
 }
-export async function toggleTheme() {
-  const c = cookies();
-  c.set('theme', c.get('theme')?.value === 'light' ? 'dark' : 'light', { maxAge: year, path: '/' });
-  revalidatePath('/', 'layout');
-}

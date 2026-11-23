@@ -22,37 +22,37 @@ export default async function InvestorsPage({ searchParams: sp }: { searchParams
   const s = sp.view ? await investorSummary(Number(sp.view), month) : null;
   const assigned = cars.filter((c) => c.investorId).length;
   return (
-    <div>
-      <PageHeader title="Investor Management" subtitle="Manage investors, their cars and monthly payouts">
-        {canCreate && <Link href="/admin/investors?new=1" className="btn-gold"><Plus size={16} /> Add investor</Link>}
+    <div className="space-y-6">
+      <PageHeader title="Investors" subtitle="Manage investors, their cars and monthly payouts">
+        {canCreate && <Link href="/admin/investors?new=1" className="btn-primary"><Plus size={16} /> Add investor</Link>}
       </PageHeader>
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Kpi label="Total investors" value={investors.length} />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Kpi featured label="Total investors" value={investors.length} />
         <Kpi label="Vehicles assigned" value={assigned} tone="blue" />
         <Kpi label="With vehicles" value={investors.filter((i) => cars.some((c) => c.investorId === i.id)).length} tone="green" />
       </div>
       <Card>
-        <form className="no-print flex gap-2 p-4" method="get"><input name="q" defaultValue={sp.q} placeholder="Search investors…" className="input max-w-md" /><button className="btn-ghost">Search</button></form>
+        <form className="no-print flex gap-2 p-4" method="get"><input name="q" defaultValue={sp.q} placeholder="Search investors" className="input max-w-md" /><button className="btn-ghost">Search</button></form>
         <TableWrap><table className="tbl">
           <thead><tr><th>Name</th><th>Phone</th><th>CNIC</th><th>Address</th><th>Share</th><th>Vehicles</th><th className="text-end">Actions</th></tr></thead>
           <tbody>
             {list.length === 0 && <Empty cols={7} />}
             {list.map((i) => (
-              <tr key={i.id}><td><span className="flex items-center gap-2 font-semibold"><Avatar name={i.name} />{i.name}</span></td><td>{i.phone ?? '—'}</td><td className="text-xs">{i.cnic ?? '—'}</td><td>{i.address ?? '—'}</td><td>{Number(i.sharePercent)}%</td>
+              <tr key={i.id}><td><span className="flex items-center gap-2 font-medium"><Avatar name={i.name} />{i.name}</span></td><td>{i.phone ?? '—'}</td><td className="text-xs">{i.cnic ?? '—'}</td><td>{i.address ?? '—'}</td><td>{Number(i.sharePercent)}%</td>
                 <td><div className="flex flex-wrap gap-1">{cars.filter((c) => c.investorId === i.id).map((c) => <span key={c.id} className="badge bg-panel2 text-ink">{c.model} ({c.regNo})</span>)}</div></td>
                 <td><div className="flex justify-end gap-1">
                   <Link className="btn-ghost btn-sm" href={`/admin/investors?view=${i.id}`}><Eye size={13} /></Link>
                   {canEdit && <Link className="btn-ghost btn-sm" href={`/admin/investors?edit=${i.id}`}><Pencil size={13} /></Link>}
-                  {canDelete && <ConfirmForm action={deleteInvestor} hidden={{ id: i.id }} message={`Delete investor ${i.name}? Their cars become company owned.`} className="btn-ghost btn-sm text-rose-400"><Trash2 size={13} /></ConfirmForm>}
+                  {canDelete && <ConfirmForm action={deleteInvestor} hidden={{ id: i.id }} message={`Delete investor ${i.name}? Their cars become company owned.`} className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}
                 </div></td></tr>))}
           </tbody></table></TableWrap>
       </Card>
 
       {(sp.new || editing) && (
-        <Modal title={editing ? `Edit ${editing.name}` : 'Add Investor'} closeHref="/admin/investors">
+        <Modal title={editing ? `Edit ${editing.name}` : 'Add investor'} closeHref="/admin/investors">
           <form action={saveInvestor} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm text-rose-300">{sp.err}</p>}
+            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name" required><input name="name" required defaultValue={editing?.name} className="input" /></Field>
               <Field label="Phone"><input name="phone" defaultValue={editing?.phone ?? ''} className="input" /></Field>
@@ -64,7 +64,7 @@ export default async function InvestorsPage({ searchParams: sp }: { searchParams
             <Field label="Assigned vehicles">
               <div className="grid max-h-48 gap-1 overflow-y-auto rounded-xl border border-line bg-panel2 p-3 sm:grid-cols-2">
                 {cars.map((c) => { const other = c.investorId && c.investorId !== editing?.id ? investors.find((i) => i.id === c.investorId)?.name : null;
-                  return <label key={c.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="vehicleIds" value={c.id} defaultChecked={!!editing && c.investorId === editing.id} className="accent-[#D4A52C]" />{c.model} ({c.regNo}){other && <span className="text-xs text-amber-400">· {other}</span>}</label>; })}
+                  return <label key={c.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="vehicleIds" value={c.id} defaultChecked={!!editing && c.investorId === editing.id} className="accent-[#0B2A5B]" />{c.model} ({c.regNo}){other && <span className="text-xs text-warn">· {other}</span>}</label>; })}
               </div></Field>
             <div className="flex justify-end gap-2"><Link href="/admin/investors" className="btn-ghost">Cancel</Link><Submit>{editing ? 'Save' : 'Add'}</Submit></div>
           </form>
@@ -88,18 +88,18 @@ export default async function InvestorsPage({ searchParams: sp }: { searchParams
               <Kpi label="Investor payable" value={pkr(s.payable)} hint={s.payout ? `Paid ${fmtDateTime(s.payout.paidAt)}` : 'Due at month end'} icon={<Wallet size={16} />} tone="green" />
               <Kpi label="Your revenue" value={pkr(s.office)} hint="Office keeps after payout" icon={<TrendingUp size={16} />} tone="yellow" />
             </div>
-            <p className="mt-4 flex flex-wrap items-center justify-center gap-2 rounded-xl bg-panel2 p-3 text-sm"><Calculator size={16} className="text-gold" /> How it&apos;s calculated: <b>{pkr(s.revenue)}</b> × <b className="text-sky-400">{s.pct}%</b> − <b className="text-rose-400">{pkr(s.maintenance)}</b> = <b className="text-emerald-400">{pkr(s.payable)}</b></p>
-            <h3 className="mb-2 mt-6 font-bold">Profit by car</h3>
+            <p className="mt-4 flex flex-wrap items-center justify-center gap-2 rounded-xl bg-panel2 p-3 text-sm"><Calculator size={16} className="text-navy" /> How it&apos;s calculated: <b>{pkr(s.revenue)}</b> × <b className="text-info">{s.pct}%</b> − <b className="text-bad">{pkr(s.maintenance)}</b> = <b className="text-ok">{pkr(s.payable)}</b></p>
+            <h3 className="mb-2 mt-6 font-medium">Profit by car</h3>
             <div className="space-y-2">
               {s.perCar.length === 0 && <p className="text-sm text-muted">No cars assigned to this investor.</p>}
               {s.perCar.map((x) => (
                 <div key={x.car.id} className="rounded-xl border border-line bg-panel2 p-4">
-                  <div className="flex items-center gap-2"><p className="font-bold">{x.car.model} ({x.car.regNo})</p><Badge status={x.status} label={V_STATUS_LABEL[x.status]} /><span className="text-xs text-muted">{x.bookings} booking(s)</span></div>
+                  <div className="flex items-center gap-2"><p className="font-medium">{x.car.model} ({x.car.regNo})</p><Badge status={x.status} label={V_STATUS_LABEL[x.status]} /><span className="text-xs text-muted">{x.bookings} booking(s)</span></div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                    <p><span className="block text-[10px] uppercase text-muted">Revenue</span>{pkr(x.revenue)}</p>
-                    <p><span className="block text-[10px] uppercase text-muted">Share ({s.pct}%)</span><span className="text-sky-400">{pkr(x.share)}</span></p>
-                    <p><span className="block text-[10px] uppercase text-muted">Maintenance</span><span className="text-rose-400">{pkr(-x.maintenance)}</span></p>
-                    <p><span className="block text-[10px] uppercase text-muted">Payable</span><span className="font-bold text-emerald-400">{pkr(x.payable)}</span></p>
+                    <p><span className="block text-[11px] text-muted">Revenue</span>{pkr(x.revenue)}</p>
+                    <p><span className="block text-[11px] text-muted">Share ({s.pct}%)</span><span className="text-info">{pkr(x.share)}</span></p>
+                    <p><span className="block text-[11px] text-muted">Maintenance</span><span className="text-bad">{pkr(-x.maintenance)}</span></p>
+                    <p><span className="block text-[11px] text-muted">Payable</span><span className="font-medium text-ok">{pkr(x.payable)}</span></p>
                   </div>
                 </div>))}
             </div>
@@ -111,7 +111,7 @@ export default async function InvestorsPage({ searchParams: sp }: { searchParams
               <Field label="Paid by"><select name="method" className="input">{['Bank transfer', 'Cash', 'JazzCash', 'Easypaisa'].map((m) => <option key={m}>{m}</option>)}</select></Field>
               <Submit><CheckCircle2 size={16} /> Mark {monthLabel(month)} as paid ({pkr(s.payable)})</Submit>
             </form>)}
-          {s.payout && <p className="mt-4 rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-300">Payout of {pkr(s.payout.payable)} recorded on {fmtDateTime(s.payout.paidAt)} and added to Expenses.</p>}
+          {s.payout && <p className="mt-4 rounded-xl bg-ok-soft p-3 text-sm text-ok">Payout of {pkr(s.payout.payable)} recorded on {fmtDateTime(s.payout.paidAt)} and added to Expenses.</p>}
         </Modal>)}
     </div>
   );

@@ -40,20 +40,20 @@ export default async function BookingDetail({ params, searchParams }: { params: 
         <Link href={`${back}/print`} className="btn-ghost"><Printer size={16} /> Rental paper</Link>
         {canEdit && !['COMPLETED', 'CANCELLED'].includes(b.status) && <Link href={`${back}/edit`} className="btn-ghost"><Pencil size={16} /> Edit</Link>}
       </PageHeader>
-      {searchParams.err && <p className="rounded-xl bg-rose-500/15 px-4 py-3 text-sm text-rose-300">{searchParams.err}</p>}
+      {searchParams.err && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{searchParams.err}</p>}
 
       {canEdit && !['COMPLETED', 'CANCELLED'].includes(b.status) && (
         <Card title="Next step">
           <div className="flex flex-wrap items-end gap-3 p-5">
-            {b.status === 'PENDING' && <form action={changeStatus}><input type="hidden" name="id" value={b.id} /><input type="hidden" name="op" value="confirm" /><Submit className="btn-gold"><CheckCircle2 size={16} /> Confirm booking</Submit></form>}
+            {b.status === 'PENDING' && <form action={changeStatus}><input type="hidden" name="id" value={b.id} /><input type="hidden" name="op" value="confirm" /><Submit className="btn-primary"><CheckCircle2 size={16} /> Confirm booking</Submit></form>}
             {['PENDING', 'CONFIRMED'].includes(b.status) && (
               <form action={changeStatus} className="flex flex-wrap items-end gap-2">
                 <input type="hidden" name="id" value={b.id} /><input type="hidden" name="op" value="start" />
                 <Field label="Meter out (km)"><input name="meterOut" type="number" defaultValue={b.meterOut ?? v?.meterReading} className="input w-36" /></Field>
                 <Field label="Fuel out"><select name="fuelOut" defaultValue={b.fuelOut ?? ''} className="input w-28"><option value="">—</option>{['Empty', '1/4', '1/2', '3/4', 'Full'].map((f) => <option key={f}>{f}</option>)}</select></Field>
-                <Submit className="btn-gold"><PlayCircle size={16} /> Hand over car</Submit>
+                <Submit className="btn-primary"><PlayCircle size={16} /> Hand over car</Submit>
               </form>)}
-            {b.status === 'IN_PROGRESS' && <Link href={`/admin/receiving?booking=${b.id}`} className="btn-gold"><PackageCheck size={16} /> Receive vehicle</Link>}
+            {b.status === 'IN_PROGRESS' && <Link href={`/admin/receiving?booking=${b.id}`} className="btn-primary"><PackageCheck size={16} /> Receive vehicle</Link>}
             {['PENDING', 'CONFIRMED'].includes(b.status) && <ConfirmForm action={changeStatus} hidden={{ id: b.id, op: 'cancel' }} message="Cancel this booking? The car will be released." className="btn-danger"><XCircle size={16} /> Cancel booking</ConfirmForm>}
           </div>
         </Card>)}
@@ -61,10 +61,10 @@ export default async function BookingDetail({ params, searchParams }: { params: 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card title="Details" className="lg:col-span-2">
           <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
-            {info.map(([k, val]) => <div key={k} className="rounded-xl bg-panel2 p-3"><p className="text-xs text-muted">{k}</p><p className="text-sm font-semibold">{val}</p></div>)}
+            {info.map(([k, val]) => <div key={k} className="rounded-xl bg-panel2 p-3"><p className="text-xs text-muted">{k}</p><p className="text-sm font-medium">{val}</p></div>)}
           </div>
           {b.notes && <p className="px-5 pb-4 text-sm"><span className="text-muted">Notes:</span> {b.notes}</p>}
-          {b.overrideReason && <p className="px-5 pb-4 text-sm text-amber-400">Total changed manually: {b.overrideReason}</p>}
+          {b.overrideReason && <p className="px-5 pb-4 text-sm text-warn">Total changed manually: {b.overrideReason}</p>}
           <div className="flex flex-wrap gap-4 border-t border-line p-5">
             {[['CNIC front', c?.cnicFrontId], ['CNIC back', c?.cnicBackId], ['Guarantor CNIC', b.guarantorCnicId], ['Signature', b.signatureId], ['Thumb', b.thumbId]].map(([k, id]) => (
               <div key={k as string} className="text-center text-xs text-muted">{id ? <a href={`/api/files/${id}`} target="_blank"><Thumb id={id as string} alt={k as string} size={96} /></a> : <Thumb alt="" size={96} />}<p className="mt-1">{k}</p></div>))}
@@ -79,14 +79,14 @@ export default async function BookingDetail({ params, searchParams }: { params: 
           {canPay && bal.pending > 0 && b.status !== 'CANCELLED' && (
             <form id="pay" action={addPayment} className="space-y-3 border-t border-line p-5">
               <input type="hidden" name="bookingId" value={b.id} /><input type="hidden" name="back" value={back} />
-              <p className="font-semibold">Receive payment</p>
+              <p className="font-medium">Receive payment</p>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="Amount"><input name="amount" type="number" min={1} max={bal.pending} defaultValue={bal.pending} className="input" /></Field>
                 <Field label="Type"><select name="type" className="input"><option value="RENT">Rent</option><option value="FINE">Fine</option><option value="ADVANCE">Advance</option></select></Field>
                 <Field label="Method"><select name="method" className="input">{['Cash', 'Bank transfer', 'JazzCash', 'Easypaisa', 'Card'].map((m) => <option key={m}>{m}</option>)}</select></Field>
                 <Field label="Date"><input name="paidAt" type="datetime-local" defaultValue={pkInput()} className="input" /></Field>
               </div>
-              <Field label="Reference / note"><input name="reference" className="input" placeholder="Txn ID, cheque no…" /></Field>
+              <Field label="Reference / note"><input name="reference" className="input" placeholder="Txn ID, cheque no" /></Field>
               <div className="flex gap-2"><Submit>Save payment</Submit><Submit className="btn-ghost" name="print" value="1">Save &amp; print receipt</Submit></div>
             </form>)}
         </Card>
@@ -95,8 +95,8 @@ export default async function BookingDetail({ params, searchParams }: { params: 
       <Card title="Payment history">
         <table className="tbl"><thead><tr><th>Date</th><th>Type</th><th>Method</th><th>Reference</th><th>Amount</th><th></th></tr></thead><tbody>
           {pays.length === 0 && <Empty cols={6} text="No payments yet" />}
-          {pays.map((p) => <tr key={p.id}><td>{fmtDateTime(p.paidAt)}</td><td><Badge status={p.type} label={p.type.charAt(0) + p.type.slice(1).toLowerCase()} /></td><td>{p.method}</td><td>{p.reference ?? '—'}</td><td className="font-semibold">{pkr(p.amount)}</td>
-            <td className="text-end"><Link className="btn-ghost btn-sm" href={`/admin/payments/receipt/${p.id}`}><Printer size={13} /></Link>{canDelPay && <ConfirmForm action={deletePayment} hidden={{ id: p.id, back }} message="Delete this payment record?" className="btn-ghost btn-sm text-rose-400">Delete</ConfirmForm>}</td></tr>)}
+          {pays.map((p) => <tr key={p.id}><td>{fmtDateTime(p.paidAt)}</td><td><Badge status={p.type} label={p.type.charAt(0) + p.type.slice(1).toLowerCase()} /></td><td>{p.method}</td><td>{p.reference ?? '—'}</td><td className="font-medium">{pkr(p.amount)}</td>
+            <td className="text-end"><Link className="btn-ghost btn-sm" href={`/admin/payments/receipt/${p.id}`}><Printer size={13} /></Link>{canDelPay && <ConfirmForm action={deletePayment} hidden={{ id: p.id, back }} message="Delete this payment record?" className="btn-ghost btn-sm text-bad">Delete</ConfirmForm>}</td></tr>)}
         </tbody></table>
       </Card>
 
@@ -116,5 +116,5 @@ export default async function BookingDetail({ params, searchParams }: { params: 
   );
 }
 function Row({ k, v, bold, red, green }: { k: string; v: React.ReactNode; bold?: boolean; red?: boolean; green?: boolean }) {
-  return <div className="flex justify-between gap-2"><span className="text-muted">{k}</span><span className={`${bold ? 'font-bold' : ''} ${red ? 'text-rose-400' : ''} ${green ? 'text-emerald-400' : ''}`}>{v}</span></div>;
+  return <div className="flex justify-between gap-2"><span className="text-muted">{k}</span><span className={`${bold ? 'font-medium' : ''} ${red ? 'text-bad' : ''} ${green ? 'text-ok' : ''}`}>{v}</span></div>;
 }

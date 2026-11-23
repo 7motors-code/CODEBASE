@@ -24,6 +24,7 @@ export async function deleteLocation(fd: FormData) {
   const [used] = await db.select({ id: schema.bookings.id }).from(schema.bookings).where(eq(schema.bookings.locationId, id));
   if (used) await db.update(schema.locations).set({ active: false }).where(eq(schema.locations.id, id));
   else await db.delete(schema.locations).where(eq(schema.locations.id, id));
+  await log(used ? 'deactivate' : 'delete', 'location', id);
   revalidatePath('/admin', 'layout');
   redirect('/admin/locations');
 }

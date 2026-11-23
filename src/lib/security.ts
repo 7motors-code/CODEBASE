@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { headers } from 'next/headers';
 import { and, eq, gte, lt, sql } from 'drizzle-orm';
 import { db, schema } from '@/db';
+import { getActiveRedis } from './redis';
 
 /**
  * Only allow redirects to paths inside this app ("/admin/...").
@@ -30,6 +31,15 @@ export function clientIp() {
  * so a forgotten `npm run db:push` never locks everybody out.
  */
 export async function isRateLimited(key: string, max: number, windowMinutes: number) {
+  const redis = getActiveRedis();
+  if (redis) {
+    try {
+      const val = await redis.get(`ratelimit:${key}`);
+      if (val !== null) {
+        return parseInt(val, 10) >= max;
+      }
+    } catch {}
+  }
   try {
     const since = new Date(Date.now() - windowMinutes * 60000);
     const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.rateLimits)
@@ -41,7 +51,17 @@ export async function isRateLimited(key: string, max: number, windowMinutes: num
   }
 }
 
-export async function hitRateLimit(key: string) {
+export async function hitRateLimit(key: string, windowMinutes = 15) {
+  const redis = getActiveRedis();
+  if (redis) {
+    try {
+      const rKey = `ratelimit:${key}`;
+      const count = await redis.incr(rKey);
+      if (count === 1) {
+        await redis.expire(rKey, windowMinutes * 60);
+      }
+    } catch {}
+  }
   try {
     await db.insert(schema.rateLimits).values({ key });
     // occasional cleanup of old rows
@@ -52,6 +72,12 @@ export async function hitRateLimit(key: string) {
 }
 
 export async function clearRateLimit(key: string) {
+  const redis = getActiveRedis();
+  if (redis) {
+    try {
+      await redis.del(`ratelimit:${key}`);
+    } catch {}
+  }
   try { await db.delete(schema.rateLimits).where(eq(schema.rateLimits.key, key)); } catch { /* ignore */ }
 }
 

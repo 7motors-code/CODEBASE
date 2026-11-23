@@ -1,88 +1,105 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Phone, Shield, Search, ArrowRight, Car } from 'lucide-react';
-import { toggleTheme } from '@/app/prefs-actions';
+import { Menu, Phone, X } from 'lucide-react';
+import { BrandMark } from '@/components/BrandMark';
 
-export function LandingNav({ businessName = 'Seven Motors' }: { businessName?: string }) {
+const NAV_LINKS = [
+  { href: '#fleet', label: 'Fleet' },
+  { href: '#how-it-works', label: 'How renting works' },
+  { href: '#locations', label: 'Locations' },
+  { href: '#concierge', label: 'Group bookings' },
+] as const;
+
+interface LandingNavProps {
+  businessName: string;
+  phone: string;
+  telHref: string | null;
+}
+
+export function LandingNav({ businessName, phone, telHref }: LandingNavProps) {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-navy-dark/75 backdrop-blur-xl transition-all">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        {/* Brand */}
-        <Link href="/" className="group flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-gold to-gold-dark p-0.5 shadow-lg shadow-gold/20">
-            <Image
-              src="/logo.jpg"
-              alt="Seven Motors"
-              width={40}
-              height={40}
-              className="h-full w-full rounded-[10px] object-cover"
-              priority
-            />
-          </div>
-          <div>
-            <span className="text-lg font-black tracking-wider text-white group-hover:text-gold-light transition-colors">
-              {businessName.toUpperCase()}
-            </span>
-            <span className="block text-[10px] font-semibold uppercase tracking-widest text-gold/90">
-              Luxury & Fleet Rentals
-            </span>
-          </div>
+    <header
+      className={`sticky top-0 z-40 w-full border-b bg-navy-dark text-white transition-shadow duration-150 ${
+        scrolled ? 'border-white/10 shadow-float' : 'border-transparent'
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
+        <Link href="/" aria-label={`${businessName} home`} className="shrink-0">
+          <BrandMark name={businessName} size={34} tone="white" priority />
         </Link>
 
-        {/* Center Nav Links */}
-        <nav className="hidden items-center gap-1 md:flex">
-          <a href="#fleet" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition">
-            Fleet
-          </a>
-          <a href="#experience" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition">
-            Experience
-          </a>
-          <a href="#locations" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition">
-            Locations
-          </a>
-          <a href="#concierge" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition">
-            VIP Protocol
-          </a>
-          <Link href="/portal/my" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-gold-light hover:bg-white/10 transition">
-            <Search size={13} />
-            Track Booking
-          </Link>
+        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          {NAV_LINKS.map((l) => (
+            <a key={l.href} href={l.href} className="rounded-md px-3 py-2 text-sm font-medium text-white/75 transition-colors duration-150 hover:bg-white/10 hover:text-white">
+              {l.label}
+            </a>
+          ))}
         </nav>
 
-        {/* Right Action Buttons */}
-        <div className="flex items-center gap-2.5">
-          {/* Quick Call Button */}
-          <a
-            href="tel:+923000000000"
-            className="hidden items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/10 sm:flex transition"
-          >
-            <Phone size={13} className="text-gold" />
-            <span>0300-SEVEN-M</span>
-          </a>
-
-          {/* Theme Toggle Form */}
-          <form action={toggleTheme}>
-            <button
-              type="submit"
-              title="Toggle theme"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-xs text-white/80 hover:bg-white/10 transition"
-            >
-              🌓
-            </button>
-          </form>
-
-          {/* Admin Link */}
-          <Link
-            href="/login"
-            className="flex items-center gap-1.5 rounded-xl border border-gold/40 bg-gradient-to-r from-gold/20 via-gold/10 to-transparent px-3.5 py-2 text-xs font-bold text-gold-light hover:border-gold hover:brightness-125 transition"
-          >
-            <Shield size={13} />
-            <span className="hidden sm:inline">Staff</span> Portal
+        <div className="ms-auto flex items-center gap-1">
+          {telHref && (
+            <a href={telHref} className="hidden items-center gap-2 rounded-md px-3 py-2 font-mono text-[13px] tabular-nums text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white lg:flex">
+              <Phone size={16} strokeWidth={1.5} className="text-gold" />
+              {phone}
+            </a>
+          )}
+          <Link href="/login" className="hidden rounded-md px-3 py-2 text-sm text-white/75 transition-colors duration-150 hover:bg-white/10 hover:text-white sm:block">
+            Staff login
           </Link>
+          <a href="#fleet" className="btn-accent btn-sm ms-1 hidden h-9 px-4 text-sm sm:inline-flex">
+            Book a car
+          </a>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            className="btn h-9 w-9 px-0 text-white hover:bg-white/10 md:hidden"
+          >
+            {open ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
+          </button>
         </div>
       </div>
+
+      {open && (
+        <nav id="mobile-nav" aria-label="Mobile" className="border-t border-line bg-panel px-4 pb-4 pt-2 md:hidden">
+          {NAV_LINKS.map((l) => (
+            <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="flex h-11 items-center rounded-md px-3 text-[15px] text-ink hover:bg-panel2">
+              {l.label}
+            </a>
+          ))}
+          <Link href="/portal/my" onClick={() => setOpen(false)} className="flex h-11 items-center rounded-md px-3 text-[15px] text-ink hover:bg-panel2">
+            Track a booking
+          </Link>
+          <Link href="/login" onClick={() => setOpen(false)} className="flex h-11 items-center rounded-md px-3 text-[15px] text-ink2 hover:bg-panel2">
+            Staff login
+          </Link>
+          <div className="mt-3 grid gap-2">
+            <a href="#fleet" onClick={() => setOpen(false)} className="btn-accent btn-lg w-full">Book a car</a>
+            {telHref && <a href={telHref} className="btn-ghost btn-lg w-full font-mono tabular-nums">{phone}</a>}
+          </div>
+        </nav>
+      )}
     </header>
   );
 }

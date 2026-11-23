@@ -3,6 +3,7 @@ import { and, eq, gte, inArray, lt, ne, sql } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import type { Booking, Vehicle } from '@/db/schema';
 import { dayRange, monthRange, pkDay } from './format';
+import { cacheGet, cacheSet } from './redis';
 
 export type VStatus = 'AVAILABLE' | 'RESERVED' | 'BOOKED' | 'RETURN' | 'MAINTENANCE';
 export const V_STATUS_LABEL: Record<VStatus, string> = {
@@ -206,6 +207,11 @@ export async function driverLedger(driverIds?: number[]) {
 }
 
 export async function getSetting(key: string, def: string) {
+  const cacheKey = `setting:${key}`;
+  const cached = await cacheGet<string>(cacheKey);
+  if (cached !== null && cached !== undefined) return cached;
   const [r] = await db.select().from(schema.settings).where(eq(schema.settings.key, key));
-  return r?.value ?? def;
+  const val = r?.value ?? def;
+  await cacheSet(cacheKey, val, 600);
+  return val;
 }

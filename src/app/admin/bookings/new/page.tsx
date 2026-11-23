@@ -11,7 +11,7 @@ export default async function NewBooking({ searchParams }: { searchParams: { err
   const d = await formData();
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader title="Create Booking" subtitle="Fill the rental details. Pick several cars to make a group booking." />
+      <PageHeader title="New booking" subtitle="Fill the rental details. Pick several cars to make a group booking." />
       <BookingForm action={createBooking} bookingId={newBookingId()} now={pkInput()} err={searchParams.err} {...d} />
     </div>
   );

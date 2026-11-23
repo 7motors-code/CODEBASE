@@ -8,6 +8,7 @@ import { requirePerm, log } from '@/lib/auth';
 import { int, str } from '@/lib/format';
 import { MODULE_KEYS } from '@/lib/modules';
 import { oneOf } from '@/lib/security';
+import { cacheDelPattern } from '@/lib/redis';
 
 export async function saveUser(fd: FormData) {
   const id = int(fd.get('id'));
@@ -63,6 +64,7 @@ export async function saveSettings(fd: FormData) {
     const value = String(fd.get(key) ?? '');
     await db.insert(schema.settings).values({ key, value }).onConflictDoUpdate({ target: schema.settings.key, set: { value } });
   }
+  await cacheDelPattern('setting:*');
   await log('update', 'settings');
   revalidatePath('/admin', 'layout');
   redirect('/admin/users?tab=settings&saved=1');

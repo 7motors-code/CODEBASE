@@ -1,17 +1,26 @@
 'use client';
 import { useFormState, useFormStatus } from 'react-dom';
 import { login } from './actions';
-function Btn() { const { pending } = useFormStatus(); return <button className="btn-gold w-full py-3" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>; }
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return <button className="btn-primary btn-lg w-full" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>;
+}
+
 export default function LoginForm() {
   const [state, action] = useFormState(login, null as null | { error?: string });
   return (
     <form action={action} className="space-y-4">
-      <div><label className="mb-1 block text-xs font-semibold uppercase text-white/60">Email</label>
-        <input name="email" type="email" required className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-white outline-none focus:border-gold" placeholder="you@example.com" /></div>
-      <div><label className="mb-1 block text-xs font-semibold uppercase text-white/60">Password</label>
-        <input name="password" type="password" required className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-white outline-none focus:border-gold" /></div>
-      {state?.error && <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-300">{state.error}</p>}
-      <Btn />
+      <label className="block">
+        <span className="label">Email</span>
+        <input name="email" type="email" required autoComplete="username" className="input h-11" />
+      </label>
+      <label className="block">
+        <span className="label">Password</span>
+        <input name="password" type="password" required autoComplete="current-password" className="input h-11" />
+      </label>
+      {state?.error && <p role="alert" className="rounded-lg border border-bad/20 bg-bad-soft px-3 py-2.5 text-sm text-bad">{state.error}</p>}
+      <div className="pt-2"><SubmitButton /></div>
     </form>
   );
 }

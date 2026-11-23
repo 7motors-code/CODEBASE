@@ -2,81 +2,128 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Neutral ramp (light only) ────────────────────────────────────
+   One graphite ramp with a faint warm cast, so photos of cars sit on
+   something that reads like a clean forecourt rather than a screen. */
 :root {
-  --bg: 244 246 251; --panel: 255 255 255; --panel2: 240 243 249; --line: 221 226 236;
-  --ink: 15 23 42; --muted: 100 116 139;
+  color-scheme: light;
+  --bg: 248 248 246;      /* page */
+  --panel: 255 255 255;   /* card */
+  --panel2: 243 243 240;  /* raised: inputs, active rows */
+  --line: 222 222 216;    /* hairline */
+  --ink: 20 23 31;        /* primary text */
+  --ink2: 74 79 92;       /* secondary text */
+  --muted: 108 113 125;   /* meta, captions, icons */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
-.dark {
-  --bg: 6 15 34; --panel: 11 25 52; --panel2: 17 35 70; --line: 32 52 92;
-  --ink: 236 241 250; --muted: 142 160 192;
-}
+
 html, body { background: rgb(var(--bg)); color: rgb(var(--ink)); }
-[dir='rtl'] body { font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', system-ui, sans-serif; }
+body { font-feature-settings: 'ss01', 'cv01'; -webkit-font-smoothing: antialiased; }
+[dir='rtl'] body { font-family: var(--font-urdu), 'Jameel Noori Nastaleeq', system-ui, sans-serif; line-height: 1.8; }
+::selection { background: rgb(11 42 91 / 0.14); }
+
+@layer base {
+  :focus-visible { outline: 2px solid #1E4A8F; outline-offset: 2px; }
+  h1, h2, h3 { text-wrap: balance; }
+}
 
 @layer components {
-  .card { @apply rounded-2xl border border-line bg-panel; }
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:opacity-50 whitespace-nowrap; }
-  .btn-gold { @apply btn bg-gradient-to-r from-gold-dark via-gold to-gold-light text-navy-dark hover:brightness-110 shadow; }
-  .btn-ghost { @apply btn border border-line bg-panel2 text-ink hover:border-gold/60; }
-  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-500; }
-  .btn-sm { @apply px-3 py-1.5 text-xs rounded-lg; }
-  .input { @apply w-full rounded-xl border border-line bg-panel2 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-gold focus:ring-2 focus:ring-gold/20; }
-  .label { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-muted; }
+  /* Surfaces */
+  .card { @apply rounded-xl border border-line bg-panel shadow-xs; }
+
+  /* Buttons — one primary (navy), one secondary (white + hairline), one quiet.
+     40px tall by default, 32px small, 48px large. */
+  .btn {
+    @apply inline-flex h-10 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-medium
+      transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out
+      active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-navy text-white hover:bg-navy-light;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 1px 2px rgb(7 27 61 / 0.2);
+  }
+  .btn-gold { @apply btn-primary; } /* legacy alias */
+  /* Landing accent: gold fill, deep navy text (contrast ≈ 8:1). For dark bands and the main booking CTA. */
+  .btn-accent {
+    @apply btn bg-gold font-semibold text-navy-dark hover:bg-gold-light;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 1px 2px rgb(7 27 61 / 0.25);
+  }
+  /* Secondary on dark bands */
+  .btn-on-dark { @apply btn border border-white/25 bg-white/5 text-white hover:border-white/50 hover:bg-white/10; }
+  /* Display headline for the landing page */
+  .display { @apply font-bold tracking-[-0.03em] text-balance; }
+  .btn-ghost { @apply btn border border-line bg-panel text-ink shadow-xs hover:border-ink/20 hover:bg-panel2; }
+  .btn-quiet { @apply btn text-ink2 hover:bg-panel2 hover:text-ink; }
+  .btn-danger { @apply btn bg-bad text-white hover:bg-[#a52c26]; }
+  .btn-sm { @apply h-8 gap-1.5 rounded-md px-3 text-[13px]; }
+  .btn-lg { @apply h-12 rounded-[10px] px-5 text-[15px]; }
+
+  /* Forms */
+  .input {
+    @apply h-10 w-full rounded-lg border border-line bg-panel px-3 text-sm text-ink shadow-xs outline-none
+      transition-[border-color,box-shadow] duration-150 placeholder:text-muted
+      focus:border-navy-light focus:ring-[3px] focus:ring-navy/10;
+  }
+  textarea.input { @apply h-auto py-2.5; }
+  select.input { @apply cursor-pointer appearance-none bg-no-repeat pe-9; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236c717d' stroke-width='1.5' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-position: right 0.75rem center; }
+  [dir='rtl'] select.input { background-position: left 0.75rem center; }
+  input[type='file'].input { @apply h-auto py-2 file:me-3 file:rounded-md file:border-0 file:bg-panel2 file:px-3 file:py-1 file:text-[13px] file:font-medium file:text-ink; }
+  .label { @apply mb-1.5 block text-[13px] font-medium text-ink2; }
+
+  /* Tables */
   .tbl { @apply w-full text-sm; }
-  .tbl th { @apply whitespace-nowrap border-b border-line px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted; }
-  .tbl td { @apply border-b border-line/60 px-4 py-3 align-middle; }
-  .tbl tbody tr:hover { @apply bg-panel2/60; }
-  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap; }
-  .link { @apply font-semibold text-gold hover:underline; }
-  .section-title { @apply text-base font-bold; }
+  .tbl th { @apply h-11 whitespace-nowrap border-b-2 border-line bg-panel2 px-4 text-start text-[13px] font-semibold text-ink2; }
+  .tbl td { @apply h-12 whitespace-nowrap border-b border-line/70 px-4 align-middle text-ink; }
+  .tbl td.wrap { @apply whitespace-normal; }
+  .tbl tbody tr { @apply transition-colors duration-150; }
+  .tbl tbody tr:hover { @apply bg-panel2/50; }
+  .tbl tbody tr:last-child td { @apply border-b-0; }
 
-  /* Liquid Glass System */
-  .glass-surface {
-    background: rgba(11, 25, 52, 0.75);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  .badge { @apply inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-xs font-medium; }
+  .link { @apply font-medium text-navy-light underline-offset-2 hover:underline; }
+  .section-title { @apply text-base font-semibold tracking-[-0.01em] text-ink; }
+
+  /* Signature: a Pakistani number plate. Used wherever a registration
+     number appears — fleet cards, tables, the booking sheet. */
+  .plate {
+    @apply inline-flex h-6 items-center overflow-hidden rounded-[5px] border border-ink/70 bg-white font-mono text-[12px] font-medium tabular-nums text-ink;
   }
-  .liquid-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
-  }
-  .liquid-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(212, 165, 44, 0.45);
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 25px -5px rgba(212, 165, 44, 0.2), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
-  }
-  .liquid-glass-input {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .liquid-glass-input:focus {
-    border-color: rgba(212, 165, 44, 0.7);
-    box-shadow: 0 0 0 3px rgba(212, 165, 44, 0.2);
-  }
+  .plate::before { content: ''; @apply h-full w-1.5 bg-gold; }
+  .plate > span { @apply px-1.5; }
 }
 
-/* Skeleton Shimmer */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+@layer utilities {
+  .tabular { font-variant-numeric: tabular-nums; }
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 }
+
+/* One entrance on load: short fade + rise */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.reveal { animation: rise 0.42s var(--ease) both; }
+.reveal-d1 { animation-delay: 0.05s; }
+.reveal-d2 { animation-delay: 0.1s; }
+.reveal-d3 { animation-delay: 0.15s; }
+.reveal-d4 { animation-delay: 0.2s; }
+.reveal-d5 { animation-delay: 0.25s; }
+
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 .skeleton-shimmer {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.12) 37%, rgba(255, 255, 255, 0.03) 63%);
+  background: linear-gradient(90deg, rgb(var(--panel2)) 25%, rgb(var(--line)) 37%, rgb(var(--panel2)) 63%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
 
+.clean-card { @apply rounded-xl border border-line bg-panel shadow-xs transition-[border-color,box-shadow] duration-150; }
+.clean-card:hover { @apply border-ink/15 shadow-float; }
+
 @media print {
   .no-print { display: none !important; }
   html, body { background: #fff !important; color: #000 !important; }
-  .print-area { box-shadow: none !important; border: none !important; }
+  .print-area, .card { box-shadow: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

@@ -16,24 +16,24 @@ export default async function LocationsPage({ searchParams: sp }: { searchParams
   const editing = sp.edit ? rows.find((r) => r.id === Number(sp.edit)) : undefined;
   void eq;
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader title="Locations" subtitle="Cities, branches and pickup points used in bookings and reports">
-        {canCreate && <Link href="/admin/locations?new=1" className="btn-gold"><Plus size={16} /> Add location</Link>}
+        {canCreate && <Link href="/admin/locations?new=1" className="btn-primary"><Plus size={16} /> Add location</Link>}
       </PageHeader>
       <Card><TableWrap><table className="tbl">
         <thead><tr><th>Name</th><th>City</th><th>Address</th><th>Bookings</th><th>Revenue</th><th>Status</th><th className="text-end">Actions</th></tr></thead>
         <tbody>
           {rows.length === 0 && <Empty cols={7} />}
           {rows.map((l) => { const st = stats.find((s) => s.id === l.id); return (
-            <tr key={l.id}><td className="font-semibold">{l.name}</td><td>{l.city ?? '—'}</td><td>{l.address ?? '—'}</td><td>{st?.n ?? 0}</td><td>{pkr(st?.s ?? 0)}</td><td><Badge status={l.active ? 'ACTIVE' : 'INACTIVE'} /></td>
+            <tr key={l.id}><td className="font-medium">{l.name}</td><td>{l.city ?? '—'}</td><td>{l.address ?? '—'}</td><td>{st?.n ?? 0}</td><td>{pkr(st?.s ?? 0)}</td><td><Badge status={l.active ? 'ACTIVE' : 'INACTIVE'} /></td>
               <td><div className="flex justify-end gap-1"><Link className="btn-ghost btn-sm" href={`/admin/bookings?location=${l.id}`}>Bookings</Link>{canEdit && <Link className="btn-ghost btn-sm" href={`/admin/locations?edit=${l.id}`}><Pencil size={13} /></Link>}
-                {canDelete && <ConfirmForm action={deleteLocation} hidden={{ id: l.id }} message="Remove this location? Locations used by bookings are deactivated." className="btn-ghost btn-sm text-rose-400"><Trash2 size={13} /></ConfirmForm>}</div></td></tr>); })}
+                {canDelete && <ConfirmForm action={deleteLocation} hidden={{ id: l.id }} message="Remove this location? Locations used by bookings are deactivated." className="btn-ghost btn-sm text-bad"><Trash2 size={13} /></ConfirmForm>}</div></td></tr>); })}
         </tbody></table></TableWrap></Card>
       {(sp.new || editing) && (
-        <Modal title={editing ? `Edit ${editing.name}` : 'Add Location'} closeHref="/admin/locations">
+        <Modal title={editing ? `Edit ${editing.name}` : 'Add location'} closeHref="/admin/locations">
           <form action={saveLocation} className="space-y-4">
             {editing && <input type="hidden" name="id" value={editing.id} />}
-            {sp.err && <p className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm text-rose-300">{sp.err}</p>}
+            {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-2 text-sm text-bad">{sp.err}</p>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name" required><input name="name" required defaultValue={editing?.name} className="input" placeholder="e.g. Islamabad G-9 branch" /></Field>
               <Field label="City"><input name="city" defaultValue={editing?.city ?? ''} className="input" /></Field>

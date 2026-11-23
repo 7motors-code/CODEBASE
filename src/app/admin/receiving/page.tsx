@@ -29,24 +29,24 @@ export default async function Receiving({ searchParams: sp }: { searchParams: { 
   const pg = paginate(received, sp.page, 10);
   return (
     <div className="space-y-6">
-      <PageHeader title="Vehicle Receiving" subtitle="Check in a returned car against its booking" />
-      {sp.done && <p className="rounded-xl bg-emerald-500/15 px-4 py-3 text-sm text-emerald-300">Booking {sp.done} received and completed. The car is available again. <Link className="link" href={`/admin/bookings/${sp.done}`}>Open booking</Link></p>}
-      {sp.err && <p className="rounded-xl bg-rose-500/15 px-4 py-3 text-sm text-rose-300">{sp.err}</p>}
+      <PageHeader title="Returns" subtitle="Check in a returned car against its booking" />
+      {sp.done && <p className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">Booking {sp.done} received and completed. The car is available again. <Link className="link" href={`/admin/bookings/${sp.done}`}>Open booking</Link></p>}
+      {sp.err && <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{sp.err}</p>}
       <Card title="Search booking">
         <form className="flex gap-2 p-4" method="get">
-          <input name="q" defaultValue={sp.q} placeholder="Booking ID, phone, CNIC, car name or plate no…" className="input" autoFocus />
-          <button className="btn-gold"><Search size={16} /> Search</button>
+          <input name="q" defaultValue={sp.q} placeholder="Booking ID, phone, CNIC, car name or plate no" className="input" autoFocus />
+          <button className="btn-primary"><Search size={16} /> Search</button>
         </form>
         {!sel && (
           <div className="px-4 pb-4">
             <p className="mb-2 text-xs text-muted">{q ? `${matches.length} match(es)` : `${open.length} car(s) currently out`}</p>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
               {matches.map(({ b, c, v }) => (
-                <Link key={b.id} href={`/admin/receiving?booking=${b.id}`} className="rounded-xl border border-line bg-panel2 p-3 text-sm hover:border-gold">
-                  <span className="font-mono text-xs text-gold">{b.id}</span>
-                  <span className="block font-semibold">{v?.model} ({v?.regNo})</span>
+                <Link key={b.id} href={`/admin/receiving?booking=${b.id}`} className="rounded-xl border border-line bg-panel2 p-3 text-sm hover:border-navy/40">
+                  <span className="font-mono text-xs text-navy">{b.id}</span>
+                  <span className="block font-medium">{v?.model} ({v?.regNo})</span>
                   <span className="block text-xs text-muted">{c?.name} · {c?.phone}</span>
-                  <span className={`block text-xs ${b.endAt < now ? 'text-rose-400' : 'text-muted'}`}>Due {fmtDateTime(b.endAt)}{b.endAt < now ? ' — overdue' : ''}</span>
+                  <span className={`block text-xs ${b.endAt < now ? 'text-bad' : 'text-muted'}`}>Due {fmtDateTime(b.endAt)}{b.endAt < now ? ' — overdue' : ''}</span>
                 </Link>))}
               {matches.length === 0 && <p className="text-sm text-muted">No car is out matching this search.</p>}
             </div>
@@ -54,11 +54,11 @@ export default async function Receiving({ searchParams: sp }: { searchParams: { 
       </Card>
 
       {sel && bal && (
-        <Card title={<span>Receive <span className="font-mono text-gold">{sel.b.id}</span></span>} actions={<Link href="/admin/receiving" className="btn-ghost btn-sm">Change booking</Link>}>
+        <Card title={<span>Receive <span className="font-mono text-navy">{sel.b.id}</span></span>} actions={<Link href="/admin/receiving" className="btn-ghost btn-sm">Change booking</Link>}>
           <div className="grid gap-3 p-5 sm:grid-cols-3 lg:grid-cols-6">
             {[['Customer', `${sel.c?.name} · ${sel.c?.phone}`], ['Car', `${sel.v?.model} (${sel.v?.regNo})`], ['Out', fmtDateTime(sel.b.startAt)], ['Due back', fmtDateTime(sel.b.endAt)],
               ['Meter / fuel out', `${sel.b.meterOut?.toLocaleString() ?? '—'} km · ${sel.b.fuelOut ?? '—'}`], ['Paid / pending', `${pkr(bal.paid)} / ${pkr(bal.pending)}`]].map(([k, v]) => (
-              <div key={k} className="rounded-xl bg-panel2 p-3"><p className="text-xs text-muted">{k}</p><p className="text-sm font-semibold">{v}</p></div>))}
+              <div key={k} className="rounded-xl bg-panel2 p-3"><p className="text-xs text-muted">{k}</p><p className="text-sm font-medium">{v}</p></div>))}
           </div>
           {canCreate && (
             <form action={receiveVehicle} className="space-y-4 border-t border-line p-5">
@@ -69,10 +69,10 @@ export default async function Receiving({ searchParams: sp }: { searchParams: { 
                 <Field label="Fuel in"><select name="fuelIn" className="input"><option value="">—</option>{['Empty', '1/4', '1/2', '3/4', 'Full'].map((f) => <option key={f}>{f}</option>)}</select></Field>
                 <Field label="Fine (PKR)"><input type="number" name="fine" min={0} defaultValue={suggested?.fine ?? 0} className="input" /></Field>
               </div>
-              {suggested && suggested.fine > 0 && <p className="text-xs text-amber-400">Suggested late fine: {pkr(suggested.fine)} — returned {suggested.lateHours.toFixed(1)} h late ({grace} h grace). Add fuel shortfall or extra km to the fine if needed.</p>}
+              {suggested && suggested.fine > 0 && <p className="text-xs text-warn">Suggested late fine: {pkr(suggested.fine)} — returned {suggested.lateHours.toFixed(1)} h late ({grace} h grace). Add fuel shortfall or extra km to the fine if needed.</p>}
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Fine note"><input name="fineNote" className="input" placeholder="e.g. late 5 hours + fuel 1/4 short" /></Field>
-                <Field label="Condition notes"><input name="notes" className="input" placeholder="Any scratches, cleanliness…" /></Field>
+                <Field label="Condition notes"><input name="notes" className="input" placeholder="Any scratches, cleanliness" /></Field>
               </div>
               <ImageInput name="photos" label="Return photos" multiple />
               <div className="grid gap-4 rounded-xl bg-panel2 p-4 md:grid-cols-3">

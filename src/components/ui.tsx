@@ -1,63 +1,92 @@
 import Link from 'next/link';
-import { X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { ModalBehavior } from './client';
 
 export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-sm text-ink2">{subtitle}</p>}
       </div>
       {children && <div className="no-print flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   );
 }
 
-const TONES: Record<string, string> = {
-  gold: 'from-gold/20 to-transparent text-gold', blue: 'from-sky-500/20 to-transparent text-sky-400',
-  green: 'from-emerald-500/20 to-transparent text-emerald-400', red: 'from-rose-500/20 to-transparent text-rose-400',
-  purple: 'from-violet-500/20 to-transparent text-violet-400', orange: 'from-orange-500/20 to-transparent text-orange-400',
-  cyan: 'from-cyan-500/20 to-transparent text-cyan-400', yellow: 'from-yellow-400/25 to-transparent text-yellow-500',
-};
-export function Kpi({ label, value, hint, tone = 'gold', icon }: { label: string; value: ReactNode; hint?: ReactNode; tone?: keyof typeof TONES | string; icon?: ReactNode }) {
-  return (
-    <div className={`card relative overflow-hidden bg-gradient-to-br p-4 ${TONES[tone] ?? TONES.gold}`}>
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
-        {icon && <span className="opacity-80">{icon}</span>}
+/**
+ * A stat: label, one figure, and what it compares to. `featured` draws the
+ * page's headline number on a dark navy card. `tone`/`icon` are accepted for
+ * compatibility but not drawn.
+ */
+export function Kpi({ label, value, hint, featured }: { label: string; value: ReactNode; hint?: ReactNode; tone?: string; icon?: ReactNode; featured?: boolean }) {
+  if (featured) {
+    return (
+      <div className="relative overflow-hidden rounded-xl bg-navy-dark px-5 py-4 text-white shadow-float">
+        <span className="absolute inset-y-0 start-0 w-1 bg-gold" aria-hidden />
+        <p className="text-[13px] font-medium text-white/70">{label}</p>
+        <p className="mt-2 font-mono text-[28px] font-semibold leading-none tabular-nums tracking-[-0.01em] text-gold">{value}</p>
+        {hint && <div className="mt-2 text-[13px] text-white/60 [&_.text-ink2]:text-white/80 [&_.text-ok]:text-[#4cc38a] [&_.text-bad]:text-[#ff7b7b]">{hint}</div>}
       </div>
-      <p className="mt-2 text-2xl font-extrabold text-ink">{value}</p>
-      {hint && <div className="mt-1 text-xs">{hint}</div>}
+    );
+  }
+  return (
+    <div className="card px-5 py-4">
+      <p className="text-[13px] font-medium text-ink2">{label}</p>
+      <p className="mt-2 font-mono text-[28px] font-semibold leading-none tabular-nums tracking-[-0.01em] text-ink">{value}</p>
+      {hint && <div className="mt-2 text-[13px] text-muted">{hint}</div>}
     </div>
   );
 }
 
-const BADGE: Record<string, string> = {
-  AVAILABLE: 'bg-emerald-500/15 text-emerald-400', ACTIVE: 'bg-emerald-500/15 text-emerald-400', COMPLETED: 'bg-emerald-500/15 text-emerald-400',
-  PAID: 'bg-emerald-500/15 text-emerald-400', DONE: 'bg-emerald-500/15 text-emerald-400',
-  BOOKED: 'bg-rose-500/15 text-rose-400', RENTED: 'bg-rose-500/15 text-rose-400', OVERDUE: 'bg-rose-600/20 text-rose-400', BLOCKED: 'bg-rose-500/15 text-rose-400',
-  CANCELLED: 'bg-slate-500/20 text-slate-400', INACTIVE: 'bg-slate-500/20 text-slate-400', WAIVED: 'bg-slate-500/20 text-slate-400',
-  RETURN: 'bg-violet-500/15 text-violet-400', RESERVED: 'bg-sky-500/15 text-sky-400', CONFIRMED: 'bg-sky-500/15 text-sky-400',
-  IN_PROGRESS: 'bg-orange-500/15 text-orange-400', MAINTENANCE: 'bg-yellow-500/15 text-yellow-500', SCHEDULED: 'bg-cyan-500/15 text-cyan-400',
-  PENDING: 'bg-amber-500/15 text-amber-400', OPEN: 'bg-amber-500/15 text-amber-400',
-  HIGH: 'bg-rose-500/15 text-rose-400', MEDIUM: 'bg-amber-500/15 text-amber-400', LOW: 'bg-slate-500/20 text-slate-400',
+type Tone = 'ok' | 'bad' | 'warn' | 'info' | 'neutral' | 'navy';
+const TONE_CLASS: Record<Tone, { box: string; dot: string }> = {
+  ok: { box: 'bg-ok-soft text-ok', dot: 'bg-ok' },
+  bad: { box: 'bg-bad-soft text-bad', dot: 'bg-bad' },
+  warn: { box: 'bg-warn-soft text-warn', dot: 'bg-warn' },
+  info: { box: 'bg-info-soft text-info', dot: 'bg-info' },
+  navy: { box: 'bg-navy-soft text-navy', dot: 'bg-navy' },
+  neutral: { box: 'bg-panel2 text-ink2', dot: 'bg-muted' },
 };
-const LABEL: Record<string, string> = { IN_PROGRESS: 'In Progress', BOOKED: 'Rented', PER_BOOKING: 'Per Booking', SALARY: 'Salary Basis' };
+const STATUS_TONE: Record<string, Tone> = {
+  AVAILABLE: 'ok', ACTIVE: 'ok', COMPLETED: 'ok', PAID: 'ok', DONE: 'ok',
+  BOOKED: 'navy', RENTED: 'navy', RETURN: 'info', RESERVED: 'info', CONFIRMED: 'info', SCHEDULED: 'info',
+  OVERDUE: 'bad', BLOCKED: 'bad', HIGH: 'bad',
+  IN_PROGRESS: 'warn', MAINTENANCE: 'warn', PENDING: 'warn', OPEN: 'warn', MEDIUM: 'warn',
+  CANCELLED: 'neutral', INACTIVE: 'neutral', WAIVED: 'neutral', LOW: 'neutral',
+};
+const LABEL: Record<string, string> = { IN_PROGRESS: 'In progress', BOOKED: 'Rented', PER_BOOKING: 'Per booking', SALARY: 'Salary' };
+
 export function Badge({ status, label }: { status: string; label?: string }) {
   const txt = label ?? LABEL[status] ?? status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ');
-  return <span className={`badge ${BADGE[status] ?? 'bg-gold/15 text-gold'}`}>{txt}</span>;
+  const tone = TONE_CLASS[STATUS_TONE[status] ?? 'neutral'];
+  return (
+    <span className={`badge ${tone.box}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} aria-hidden />
+      {txt}
+    </span>
+  );
+}
+
+/** Registration number drawn as a number plate — the product's signature detail. */
+export function Plate({ reg }: { reg: string }) {
+  return <span className="plate"><span>{reg}</span></span>;
 }
 
 export function Modal({ title, closeHref, children, wide }: { title: string; closeHref: string; children: ReactNode; wide?: boolean }) {
+  const boxId = `modal-${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm md:p-10">
-      <div className={`card w-full ${wide ? 'max-w-4xl' : 'max-w-xl'} shadow-2xl`}>
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-lg font-bold">{title}</h2>
-          <Link href={closeHref} scroll={false} className="rounded-lg p-1 text-muted hover:bg-panel2 hover:text-ink" aria-label="Close"><X size={20} /></Link>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 md:p-10" role="dialog" aria-modal="true" aria-label={title}>
+      <ModalBehavior closeHref={closeHref} containerId={boxId} />
+      <div id={boxId} tabIndex={-1} className={`reveal relative w-full rounded-2xl border border-line bg-panel shadow-modal outline-none ${wide ? 'max-w-4xl' : 'max-w-xl'}`}>
+        <div className="flex h-16 items-center justify-between border-b border-line px-6">
+          <h2 className="text-[17px] font-medium text-ink">{title}</h2>
+          <Link href={closeHref} scroll={false} className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-panel2 hover:text-ink" aria-label="Close">
+            <X size={18} strokeWidth={1.5} />
+          </Link>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
@@ -66,7 +95,7 @@ export function Modal({ title, closeHref, children, wide }: { title: string; clo
 export function Field({ label, children, required, className = '' }: { label: string; children: ReactNode; required?: boolean; className?: string }) {
   return (
     <label className={`block ${className}`}>
-      <span className="label">{label}{required && <span className="text-rose-400"> *</span>}</span>
+      <span className="label">{label}{required && <span className="text-bad" aria-hidden> *</span>}</span>
       {children}
     </label>
   );
@@ -74,9 +103,9 @@ export function Field({ label, children, required, className = '' }: { label: st
 
 export function Card({ title, children, actions, className = '' }: { title?: ReactNode; children: ReactNode; actions?: ReactNode; className?: string }) {
   return (
-    <section className={`card ${className}`}>
+    <section className={`card overflow-hidden ${className}`}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
+        <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
           <h2 className="section-title">{title}</h2>
           {actions && <div className="no-print flex items-center gap-2">{actions}</div>}
         </div>
@@ -90,16 +119,20 @@ export function TableWrap({ children }: { children: ReactNode }) {
   return <div className="overflow-x-auto">{children}</div>;
 }
 
-export function Empty({ cols, text = 'No records found' }: { cols: number; text?: string }) {
-  return <tr><td colSpan={cols} className="py-10 text-center text-muted">{text}</td></tr>;
+export function Empty({ cols, text = 'No records yet' }: { cols: number; text?: string }) {
+  return <tr><td colSpan={cols} className="!h-auto py-14 text-center text-sm text-muted">{text}</td></tr>;
 }
 
 /** Simple GET search/filter bar; keeps other params via hidden fields */
 export function SearchBar({ placeholder, q, children, keep }: { placeholder: string; q?: string; children?: ReactNode; keep?: Record<string, string | undefined> }) {
   return (
-    <form className="no-print flex flex-wrap items-center gap-2 p-4" method="get">
+    <form className="no-print flex flex-wrap items-center gap-2 border-b border-line p-4" method="get">
       {keep && Object.entries(keep).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
-      <input name="q" defaultValue={q} placeholder={placeholder} className="input max-w-sm flex-1" />
+      <label className="relative min-w-[12rem] max-w-sm flex-1">
+        <span className="sr-only">Search</span>
+        <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input name="q" type="search" defaultValue={q} placeholder={placeholder.replace(/[.…]+$/, '')} className="input ps-9" />
+      </label>
       {children}
       <button className="btn-ghost">Search</button>
     </form>
@@ -109,16 +142,18 @@ export function SearchBar({ placeholder, q, children, keep }: { placeholder: str
 export function Pagination({ page, pages, total, per, makeHref }: { page: number; pages: number; total: number; per: number; makeHref: (p: number) => string }) {
   const from = total === 0 ? 0 : (page - 1) * per + 1;
   const to = Math.min(total, page * per);
+  const nums = Array.from({ length: pages }, (_, i) => i + 1).slice(Math.max(0, page - 3), page + 2);
   return (
-    <div className="no-print flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm text-muted">
-      <span>Showing {from} to {to} of {total} entries</span>
-      <div className="flex items-center gap-1">
-        <Link className={`btn-ghost btn-sm ${page <= 1 ? 'pointer-events-none opacity-40' : ''}`} href={makeHref(page - 1)}>Previous</Link>
-        {Array.from({ length: pages }, (_, i) => i + 1).slice(Math.max(0, page - 3), page + 2).map((p) => (
-          <Link key={p} href={makeHref(p)} className={`btn-sm btn ${p === page ? 'bg-gold text-navy-dark' : 'btn-ghost'}`}>{p}</Link>
+    <div className="no-print flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 text-[13px] text-muted">
+      <span><span className="font-mono tabular-nums text-ink2">{from}–{to}</span> of <span className="font-mono tabular-nums text-ink2">{total}</span></span>
+      <nav aria-label="Pagination" className="flex items-center gap-1">
+        <Link className={`btn-quiet btn-sm ${page <= 1 ? 'pointer-events-none opacity-40' : ''}`} href={makeHref(page - 1)}>Previous</Link>
+        {nums.map((p) => (
+          <Link key={p} href={makeHref(p)} aria-current={p === page ? 'page' : undefined}
+            className={`btn-sm btn w-8 px-0 font-mono tabular-nums ${p === page ? 'bg-panel text-ink shadow-xs ring-1 ring-line' : 'text-ink2 hover:bg-panel2'}`}>{p}</Link>
         ))}
-        <Link className={`btn-ghost btn-sm ${page >= pages ? 'pointer-events-none opacity-40' : ''}`} href={makeHref(page + 1)}>Next</Link>
-      </div>
+        <Link className={`btn-quiet btn-sm ${page >= pages ? 'pointer-events-none opacity-40' : ''}`} href={makeHref(page + 1)}>Next</Link>
+      </nav>
     </div>
   );
 }
@@ -139,11 +174,12 @@ export function href(base: string, params: Record<string, string | number | unde
 }
 
 export function Thumb({ id, alt, size = 44 }: { id?: string | null; alt: string; size?: number }) {
-  if (!id) return <div style={{ width: size, height: size }} className="flex items-center justify-center rounded-lg bg-panel2 text-[10px] text-muted">No photo</div>;
+  if (!id) return <div style={{ width: size, height: size }} className="flex shrink-0 items-center justify-center rounded-lg border border-line bg-panel2 text-[11px] text-muted">No photo</div>;
+  const src = id.startsWith('/') ? id : `/api/files/${id}`;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={`/api/files/${id}`} alt={alt} style={{ width: size, height: size }} className="rounded-lg object-cover" />;
+  return <img src={src} alt={alt} style={{ width: size, height: size }} className="shrink-0 rounded-lg object-cover ring-1 ring-line" />;
 }
 
 export function Avatar({ name }: { name: string }) {
-  return <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-dark text-xs font-bold uppercase text-navy-dark">{name.trim().charAt(0) || '?'}</span>;
+  return <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-panel2 text-[13px] font-medium text-ink2 ring-1 ring-line">{name.trim().charAt(0).toUpperCase() || '?'}</span>;
 }

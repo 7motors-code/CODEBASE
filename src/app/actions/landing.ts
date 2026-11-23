@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { log } from '@/lib/auth';
-import { rentFor, vehicleClash, withBookingLock } from '@/lib/calc';
+import { getSetting, rentFor, vehicleClash, withBookingLock } from '@/lib/calc';
+import { buildContact, whatsappWithText } from '@/lib/contact';
 import { parsePk, str, int } from '@/lib/format';
 import { newBookingId, newCustomerId } from '@/lib/ids';
 import { clientIp, hitRateLimit, isRateLimited } from '@/lib/security';
@@ -54,7 +55,7 @@ export async function submitLandingBooking(fd: FormData): Promise<InquiryResult>
     return { ok: false, error: 'Please choose valid future pickup and return dates.' };
   }
   if (end.getTime() - start.getTime() > MAX_DAYS * 86400000) {
-    return { ok: false, error: `Online requests can be up to ${MAX_DAYS} days. Please contact our 24/7 concierge for longer rentals.` };
+    return { ok: false, error: `Online requests can be up to ${MAX_DAYS} days. Please call the office for longer rentals.` };
   }
 
   // Anti-spam rate limiting
@@ -126,10 +127,9 @@ export async function submitLandingBooking(fd: FormData): Promise<InquiryResult>
   revalidatePath('/admin/bookings', 'page');
 
   // WhatsApp quick direct confirmation URL
-  const waMessage = encodeURIComponent(
-    `Hello Seven Motors, I just submitted an inquiry for ${car.model} (Booking ID: ${bookingId}). Please confirm my rental.`
-  );
-  const whatsappUrl = `https://wa.me/923000000000?text=${waMessage}`;
+  const contact = buildContact(await getSetting('business_phone', ''));
+  const whatsappUrl =
+    whatsappWithText(contact, `Hello Seven Motors, I just sent a booking request for ${car.model} (ref ${bookingId}). Please confirm.`) ?? undefined;
 
   return {
     ok: true,
@@ -171,5 +171,5 @@ export async function submitGeneralInquiry(fd: FormData): Promise<{ ok: boolean;
   await log('create', 'lead', phone, `customer lead from ${name}`);
   revalidatePath('/admin', 'layout');
 
-  return { ok: true, message: 'Thank you! Our fleet manager will contact you within 15 minutes.' };
+  return { ok: true, message: 'Request received. Our office will call you back on the number you gave.' };
 }
