@@ -22,7 +22,9 @@ export function passwordVersion(passwordHash: string) {
 
 export function clientIp() {
   const h = headers();
-  return (h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || 'unknown').trim();
+  // Prefer headers the platform sets itself (Vercel overwrites these); the first X-Forwarded-For
+  // hop can be chosen by the client behind proxies that append instead of overwrite.
+  return (h.get('x-vercel-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || h.get('x-forwarded-for')?.split(',')[0] || 'unknown').trim();
 }
 
 /**

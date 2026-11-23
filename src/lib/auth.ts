@@ -69,7 +69,8 @@ export async function log(action: string, entity: string, entityId?: string | nu
 
 export async function getPortal(): Promise<PortalSession | null> {
   const s = await verify<PortalSession>(cookies().get(PORTAL_COOKIE)?.value);
-  if (!s?.customerId) return null;
+  // Only tokens issued by the portal count; a staff token never carries customerId, but check the kind too.
+  if (!s?.customerId || s.kind !== 'portal') return null;
   // Blocked or deleted customers lose portal access immediately
   const [c] = await db.select({ status: schema.customers.status }).from(schema.customers).where(eq(schema.customers.id, s.customerId));
   if (!c || c.status === 'BLOCKED') return null;
